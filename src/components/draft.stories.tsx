@@ -34,7 +34,7 @@ import {
 import { IoOpenOutline } from "react-icons/io5";
 import { BsTrash } from "react-icons/bs";
 const noteVariants = cva(
-  "flex flex-col border w-[180px] h-[180px] group/header",
+  "flex flex-col border border-t-8 w-[180px] h-[180px] group/header shadow-md",
   {
     variants: {
       variant: {
@@ -67,7 +67,7 @@ const noteVariants = cva(
 const noteShadowVariants = cva("", {
   variants: {
     shadow: {
-      true: "drop-shadow-md",
+      true: "",
       false: "",
     },
   },
@@ -99,25 +99,23 @@ const Note = forwardRef<HTMLDivElement, NoteProps>(
     ref
   ) => {
     return (
-      <div className={cn(noteShadowVariants({ shadow }))}>
-        <div
-          ref={ref}
-          className={cn(
-            noteVariants({ className, variant, hover, border, folded })
-          )}
-          {...props}
-        >
-          {header}
-          <div className="grow">{children}</div>
-          {footer}
-        </div>
+      <div
+        ref={ref}
+        className={cn(
+          noteVariants({ className, variant, hover, border, folded })
+        )}
+        {...props}
+      >
+        {header}
+        <div className="grow">{children}</div>
+        {footer}
       </div>
     );
   }
 );
 
 const noteHeaderVariants = cva(
-  "flex justify-between w-full h-10 border-t-8 group-hover/header:border-t-0 px-1 py-2 transition-all",
+  "flex justify-between w-full h-10 px-1 py-2 transition-all",
   {
     variants: {
       variant: {
@@ -329,6 +327,7 @@ export const NoteDraft: Story = {
     variant: "amber",
     hover: "amber",
     border: "amber",
+    shadow: true,
   },
 };
 
