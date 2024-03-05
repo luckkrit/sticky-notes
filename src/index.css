@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  :root {
+    --cs: 15px;
+  }
+  .folded {
+    position: relative;
+    clip-path: polygon(
+      100% 0,
+      100% calc(100% - var(--cs)),
+      calc(100% - var(--cs)) 100%,
+      0 100%,
+      0 0
+    );
+  }
+  .folded-amber-after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: var(--cs);
+    height: var(--cs);
+    bottom: 0;
+    right: 0;
+    @apply bg-amber-950/10;
+  }
+  .folded-fuchsia-after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: var(--cs);
+    height: var(--cs);
+    bottom: 0;
+    right: 0;
+    @apply bg-fuchsia-950/10;
+  }
+  .folded-green-after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: var(--cs);
+    height: var(--cs);
+    bottom: 0;
+    right: 0;
+    @apply bg-green-950/10;
+  }
+  .folded-sky-after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: var(--cs);
+    height: var(--cs);
+    bottom: 0;
+    right: 0;
+    @apply bg-sky-950/10;
+  }
+}
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
