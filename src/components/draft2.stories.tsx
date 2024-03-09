@@ -404,9 +404,6 @@ export const Draft1: Story = {
             <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
               <div></div>
               <div className="pr-2 pt-2 flex items-center">
-                {/* <button>
-                <PiDotsThree className="invisible group-hover/note:visible" />
-              </button> */}
                 <NoteMenu
                   open={openMenu}
                   key={count}
