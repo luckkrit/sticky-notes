@@ -54,20 +54,9 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     editorProps: {
       attributes: {
         class: "overflow-auto outline-none no-scrollbar p-2",
-        // style: `width:${width.get()}px;height:${height.get() - 41}px`,
       },
     },
   });
-  // useEffect(() => {
-  //   editor?.setOptions({
-  //     editorProps: {
-  //       attributes: {
-  //         class: "overflow-auto min-h-[100px] outline-none no-scrollbar p-2",
-  //         style: `width:${width.get()}px;height:${height.get() - 41}px`,
-  //       },
-  //     },
-  //   });
-  // }, [width.get(), height.get()]);
   return editor;
 };
 
@@ -255,14 +244,18 @@ const NoteEditor = ({ editable = false, springs }: NoteEditorProps) => {
     height: new SpringValue(160),
   };
   const editor = useContext(NoteEditorContext);
+  let attributes = editor?.options.editorProps.attributes;
+  if (attributes !== undefined) {
+    attributes = {
+      ...attributes,
+      style: `width:${width.get()}px;height:${height.get() - 41}px`,
+    };
+  }
   useEffect(() => {
     editor?.setEditable(editable);
     editor?.setOptions({
       editorProps: {
-        attributes: {
-          class: "overflow-auto min-h-[100px] outline-none no-scrollbar p-2",
-          style: `width:${width.get()}px;height:${height.get() - 41}px`,
-        },
+        attributes,
       },
     });
   }, [width.get(), height.get(), editor, editable]);
