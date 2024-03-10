@@ -40,8 +40,6 @@ import { PiDotsThree } from "react-icons/pi";
 import { SpringValue, animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 
-const NoteEditorContext = createContext<Editor | null>(null);
-
 interface useNoteEditorProps {
   content: string;
 }
@@ -157,74 +155,72 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const content = "<p>Hello World!</p>";
     const editor = useNoteEditor({ content });
     return (
-      <NoteEditorContext.Provider value={editor}>
-        <animated.div
-          style={{ ...springs, touchAction: "none" }}
-          {...bind()}
-          className={cn("group/note w-fit h-fit drop-shadow-md ", className)}
+      <animated.div
+        style={{ ...springs, touchAction: "none" }}
+        {...bind()}
+        className={cn("group/note w-fit h-fit drop-shadow-md ", className)}
+      >
+        <div
+          className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
+          {...props}
+          ref={ref}
         >
-          <div
-            className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
-            {...props}
-            ref={ref}
-          >
-            <div className="flex justify-between bg-amber-200 h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8">
-              <div>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrAdd className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-              </div>
-              <div>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <PiDotsThree className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button
-                  className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
-                  onClick={() => onClose && onClose()}
-                >
-                  <GrClose className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-              </div>
+          <div className="flex justify-between bg-amber-200 h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8">
+            <div>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrAdd className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
             </div>
-            <div className="fixed top-8 bottom-8 left-1 right-1">
-              <NoteEditor editable springs={springs} />
-            </div>
-            <div className="fixed bottom-0 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
-              <div>
-                <button
-                  className={`invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2 ${
-                    editor?.isActive("bold") ? "bg-zinc-200/60" : ""
-                  }`}
-                  onClick={() => editor?.chain().focus().toggleBold().run()}
-                  disabled={!editor?.can().chain().focus().toggleBold().run()}
-                >
-                  <GrBold className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrItalic className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrUnderline className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrStrikeThrough className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-                <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                  <GrImage className="invisible group-focus-within/note:visible hover:visible" />
-                </button>
-              </div>
-              <div></div>
+            <div>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <PiDotsThree className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button
+                className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
+                onClick={() => onClose && onClose()}
+              >
+                <GrClose className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
             </div>
           </div>
-          <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
-            ref={dragEl}
-          ></div>
-        </animated.div>
-      </NoteEditorContext.Provider>
+          <div className="fixed top-8 bottom-8 left-1 right-1">
+            <NoteEditor editable springs={springs} editor={editor} />
+          </div>
+          <div className="fixed bottom-0 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
+            <div>
+              <button
+                className={`invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2 ${
+                  editor?.isActive("bold") ? "bg-zinc-200/60" : ""
+                }`}
+                onClick={() => editor?.chain().focus().toggleBold().run()}
+                disabled={!editor?.can().chain().focus().toggleBold().run()}
+              >
+                <GrBold className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrItalic className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrUnderline className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrStrikeThrough className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+                <GrImage className="invisible group-focus-within/note:visible hover:visible" />
+              </button>
+            </div>
+            <div></div>
+          </div>
+        </div>
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+          ref={dragEl}
+        ></div>
+      </animated.div>
     );
   }
 );
@@ -237,13 +233,14 @@ interface NoteEditorProps extends HTMLAttributes<HTMLElement> {
     width: SpringValue<number>;
     height: SpringValue<number>;
   };
+  editor: Editor | null;
 }
-const NoteEditor = ({ editable = false, springs }: NoteEditorProps) => {
+const NoteEditor = ({ editable = false, springs, editor }: NoteEditorProps) => {
   const { width, height } = springs || {
     width: new SpringValue(220),
     height: new SpringValue(160),
   };
-  const editor = useContext(NoteEditorContext);
+  // const editor = useContext(NoteEditorContext);
   let attributes = editor?.options.editorProps.attributes;
   if (attributes !== undefined) {
     attributes = {
