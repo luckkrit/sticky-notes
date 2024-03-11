@@ -55,6 +55,9 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
       },
     },
   });
+  useEffect(() => {
+    editor?.commands.setContent(content);
+  }, [content]);
   return editor;
 };
 
@@ -62,7 +65,72 @@ const Note = () => {
   return <></>;
 };
 
-const StackNote = () => {};
+const StackNote = () => {
+  const [count, setCount] = useState(0);
+  const [openMenu, setOpenMenu] = useState(false);
+  const [isFolded, setIsFolded] = useState(false);
+  const [content, setContent] = useState("<p>Hello World!</p>");
+  const editor = useNoteEditor({ content });
+  return (
+    <>
+      {isFolded && (
+        <ResizableNote
+          className="absolute z-50"
+          onClose={() => setIsFolded(false)}
+          content={content}
+          setContent={setContent}
+        />
+      )}
+      <div
+        className="group/note w-fit h-fit drop-shadow-md"
+        onMouseEnter={() => {
+          setCount((o) => {
+            if (o > 20) o = 0;
+            return o + 1;
+          });
+          setOpenMenu(() => false);
+        }}
+        onMouseLeave={() => {
+          setCount((o) => {
+            if (o > 20) o = 0;
+            return o + 1;
+          });
+          setOpenMenu(() => false);
+        }}
+      >
+        <div
+          className={cn(
+            "flex flex-col bg-amber-100 border-amber-200 w-[220px] h-[200px] group-hover/note:bg-amber-950/10 group-hover/note:shadow-md",
+            isFolded === true ? "folded after:folded-amber-after" : ""
+          )}
+        >
+          <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
+            <div></div>
+            <div className="pr-2 pt-2 flex items-center">
+              <NoteMenu
+                open={openMenu}
+                key={count}
+                onOpen={() => {
+                  setIsFolded(() => true);
+                }}
+                onClose={() => {
+                  setIsFolded(() => false);
+                }}
+                hasOpened={isFolded}
+              />
+              <span className="group-hover/note:hidden text-slate-600 text-xs">
+                25/05/65
+              </span>
+            </div>
+          </div>
+          <div className="fixed top-8 bottom-8 left-1 right-1">
+            <NoteEditor editor={editor} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 interface UseResizableProps {
   x1?: number;
   y1?: number;
@@ -141,9 +209,11 @@ interface ResizableNoteProps
     VariantProps<typeof resizableNoteVariants> {
   ref?: React.Ref<HTMLDivElement>;
   onClose?: () => void;
+  content?: string;
+  setContent?: React.Dispatch<React.SetStateAction<string>>;
 }
 const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
-  ({ className, onClose, ...props }, ref) => {
+  ({ className, onClose, content = "", setContent, ...props }, ref) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
     const { springs, bind } = useResizable({
       x1: 0,
@@ -152,8 +222,10 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
       h1: 200,
       dragEl,
     });
-    const content = "<p>Hello World!</p>";
     const editor = useNoteEditor({ content });
+    editor?.on("update", (e) => {
+      setContent && setContent(() => e.editor.getHTML());
+    });
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
@@ -188,15 +260,15 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           </div>
           <div className="fixed bottom-0 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
             <div>
-              <button
-                className={`invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2 ${
+              <NoteCommandButton
+                className={`${
                   editor?.isActive("bold") ? "bg-zinc-200/60" : ""
                 }`}
-                onClick={() => editor?.chain().focus().toggleBold().run()}
                 disabled={!editor?.can().chain().focus().toggleBold().run()}
+                onClick={() => editor?.chain().focus().toggleBold().run()}
               >
                 <GrBold className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
+              </NoteCommandButton>
               <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
                 <GrItalic className="invisible group-focus-within/note:visible hover:visible" />
               </button>
@@ -240,7 +312,6 @@ const NoteEditor = ({ editable = false, springs, editor }: NoteEditorProps) => {
     width: new SpringValue(220),
     height: new SpringValue(160),
   };
-  // const editor = useContext(NoteEditorContext);
   let attributes = editor?.options.editorProps.attributes;
   if (attributes !== undefined) {
     attributes = {
@@ -274,11 +345,6 @@ const NoteMenu = ({
 }: NoteMenuProps) => {
   const [isOpen, setIsOpen] = useState(open);
   const [isOpenNote, setIsOpenNote] = useState(hasOpened);
-  // useEffect(() => {
-  //   if (open === false) {
-  //     setIsOpen(() => open);
-  //   }
-  // }, [open]);
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
     onOpenChange: setIsOpen,
@@ -360,6 +426,29 @@ const NoteMenuItem = ({ onMenuItemClick, children }: NoteMenuItemProps) => {
     </button>
   );
 };
+interface NoteCommandButton extends ButtonHTMLAttributes<HTMLButtonElement> {
+  onClick: () => void;
+}
+const NoteCommandButton = ({
+  onClick,
+  children,
+  className,
+  ...props
+}: NoteCommandButton) => {
+  return (
+    <button
+      className={cn(
+        className,
+        "invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
+      )}
+      {...props}
+      onClick={() => onClick()}
+    >
+      {children}
+    </button>
+  );
+};
+
 const meta: Meta<typeof Note> = {
   component: Note,
 };
@@ -369,61 +458,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Draft1: Story = {
   render: () => {
-    const [count, setCount] = useState(0);
-    const [openMenu, setOpenMenu] = useState(false);
-    const [isFolded, setIsFolded] = useState(false);
-
-    return (
-      <>
-        {isFolded && (
-          <ResizableNote
-            className="absolute top-0 right-0 z-50"
-            onClose={() => setIsFolded(false)}
-          />
-        )}
-        <div
-          className="group/note w-fit h-fit drop-shadow-md"
-          onMouseEnter={() => {
-            setCount((o) => o + 1);
-            setOpenMenu(() => false);
-          }}
-          onMouseLeave={() => {
-            setCount((o) => o + 1);
-            setOpenMenu(() => false);
-          }}
-        >
-          <div
-            className={cn(
-              "flex flex-col bg-amber-100 border-amber-200 w-[220px] h-[200px] group-hover/note:bg-amber-950/10 group-hover/note:shadow-md",
-              isFolded === true ? "folded after:folded-amber-after" : ""
-            )}
-          >
-            <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
-              <div></div>
-              <div className="pr-2 pt-2 flex items-center">
-                <NoteMenu
-                  open={openMenu}
-                  key={count}
-                  onOpen={() => {
-                    setIsFolded(() => true);
-                  }}
-                  onClose={() => {
-                    setIsFolded(() => false);
-                  }}
-                  hasOpened={isFolded}
-                />
-                <span className="group-hover/note:hidden text-slate-600 text-xs">
-                  25/05/65
-                </span>
-              </div>
-            </div>
-            <div className="fixed top-8 bottom-8 left-1 right-1">
-              <NoteEditor springs={undefined} />
-            </div>
-          </div>
-        </div>
-      </>
-    );
+    return <StackNote />;
   },
 };
 
