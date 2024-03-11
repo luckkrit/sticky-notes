@@ -56,6 +56,29 @@
     right: 0;
     @apply bg-sky-950/10;
   }
+  .cropped-area {
+    border: 1px dashed black;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100px;
+    height: 100px;
+    z-index: 100;
+    box-shadow: 0 0 2000px 2000px rgb(0 0 0 / 30%);
+    touch-action: none;
+    cursor: move;
+  }
+
+  .resizer {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: #0097df;
+    cursor: nwse-resize;
+    touch-action: none;
+  }
 }
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */

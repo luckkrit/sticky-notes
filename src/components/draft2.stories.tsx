@@ -1,4 +1,4 @@
-import { cn } from "@/lib/util";
+import { canvasPreview, cn } from "@/lib/util";
 import {
   FloatingFocusManager,
   autoPlacement,
@@ -15,7 +15,6 @@ import StarterKit from "@tiptap/starter-kit";
 import { VariantProps, cva } from "class-variance-authority";
 import React, {
   ButtonHTMLAttributes,
-  DialogHTMLAttributes,
   HTMLAttributes,
   PropsWithChildren,
   forwardRef,
@@ -35,7 +34,7 @@ import {
   GrUnorderedList,
 } from "react-icons/gr";
 import { IoOpenOutline } from "react-icons/io5";
-import { MdCloseFullscreen, MdSettingsInputComponent } from "react-icons/md";
+import { MdCloseFullscreen } from "react-icons/md";
 import { PiDotsThree } from "react-icons/pi";
 import { SpringValue, animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
@@ -253,7 +252,9 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageMimeType = /image\/(png|jpg|jpeg)/i;
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [imageData, setImageData] = useState<string | null>(null);
+    const canvasPreviewRef = useRef<HTMLCanvasElement>(null);
+    const [imageData, setImageData] = useState<string | undefined>(undefined);
+    const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
     useEffect(() => {
       if (open) {
         const image = new Image();
@@ -267,14 +268,16 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               setIsOpen(() => true);
             }
           };
-          image.src = imageData;
+          if (imageData !== undefined) {
+            image.src = imageData;
+          }
         }
       }
     }, [canvasRef, imageData, open]);
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
-        {...bind()}
+        {...(!open ? bind() : {})}
         className={cn("group/note w-fit h-fit drop-shadow-md ", className)}
       >
         <div
@@ -302,11 +305,37 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           </div>
           <div className="fixed top-8 bottom-8 left-1 right-1">
             <NoteEditor editable springs={springs} editor={editor} />
-            <ImagePreviewDialog open={open} setIsOpen={setIsOpen}>
-              <canvas ref={canvasRef} className="w-full h-full p-4" />
+            <ImagePreviewDialog
+              open={open}
+              setIsOpen={setIsOpen}
+              containerRef={canvasRef}
+              setCrop={setCrop}
+            >
+              <div className="p-4">
+                <canvas ref={canvasRef} className="w-full h-full" />
+              </div>
+              <canvas ref={canvasPreviewRef} />
               <button
                 onClick={() => {
-                  setIsOpen(() => false);
+                  // setIsOpen(() => false);
+                  const image = new Image();
+                  image.onload = async () => {
+                    const context = canvasPreviewRef?.current?.getContext("2d");
+                    if (
+                      context !== null &&
+                      context !== undefined &&
+                      canvasPreviewRef.current !== null
+                    ) {
+                      await canvasPreview(
+                        image,
+                        canvasPreviewRef.current,
+                        crop
+                      );
+                    }
+                  };
+                  if (imageData !== undefined) {
+                    image.src = imageData;
+                  }
                 }}
               >
                 Close
@@ -328,6 +357,9 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
                     if (result?.toString() !== undefined) {
                       setImageData(result?.toString());
                       setIsOpen(() => true);
+                      if (fileInputRef.current !== null) {
+                        fileInputRef.current.value = "";
+                      }
                     }
                   };
                   fileReader.readAsDataURL(file);
@@ -561,13 +593,111 @@ const NoteCommandButton = ({
 interface ImagePreviewDialogProps {
   open?: boolean;
   setIsOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  containerRef?: React.RefObject<HTMLCanvasElement>;
+  setCrop?: React.Dispatch<
+    React.SetStateAction<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }>
+  >;
 }
 
 const ImagePreviewDialog = ({
   open = false,
   setIsOpen,
   children,
+  containerRef,
+  setCrop,
 }: PropsWithChildren<ImagePreviewDialogProps>) => {
+  const [isCropping, setIsCropping] = useState(false);
+  useEffect(() => {
+    setIsCropping(() => open);
+    if (open) {
+      setTimeout(() => {
+        const rects = containerRef?.current?.getBoundingClientRect();
+        if (rects !== undefined) {
+          api.set({ x: rects.x, y: rects.y, width: 100, height: 100 });
+        }
+      }, 500);
+    }
+  }, [open, containerRef]);
+  const [{ x, y, width, height }, api] = useSpring(() => ({
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+  }));
+  const dragEl = useRef<HTMLDivElement | null>(null);
+
+  const bind = useDrag(
+    (state) => {
+      const isResizing = state?.event.target === dragEl.current;
+      if (isResizing) {
+        api.set({
+          width: state.offset[0],
+          height: state.offset[1],
+        });
+      } else {
+        api.set({
+          x: state.offset[0],
+          y: state.offset[1],
+        });
+      }
+      const rects = containerRef?.current?.getBoundingClientRect();
+      if (rects !== undefined) {
+        // api.set({ x: rects.x, y: rects.y, width: 100, height: 100 });
+        setCrop &&
+          setCrop(() => ({
+            x: x.get() - rects.x,
+            y: y.get() - rects.y,
+            width: width.get(),
+            height: height.get(),
+          }));
+      }
+    },
+    {
+      from: (event) => {
+        const isResizing = event.target === dragEl.current;
+        if (isResizing) {
+          return [width.get(), height.get()];
+        } else {
+          return [x.get(), y.get()];
+        }
+      },
+      bounds: (state) => {
+        const isResizing = state?.event.target === dragEl.current;
+        const rects = containerRef?.current?.getBoundingClientRect();
+        let containerWidth = 0;
+        let containerHeight = 0;
+        let top = 0;
+        let left = 0;
+        if (rects !== undefined) {
+          containerWidth = rects.width;
+          containerHeight = rects.height;
+          left = rects.x;
+          top = rects.y;
+        }
+        if (isResizing) {
+          return {
+            top: 50,
+            left: 50,
+            right: left + containerWidth - x.get(),
+            bottom: top + containerHeight - y.get(),
+          };
+        } else {
+          return {
+            top: top,
+            left: left,
+            right: left + containerWidth - width.get(),
+            bottom: top + containerHeight - height.get(),
+          };
+        }
+      },
+    }
+  );
+
   return (
     <Dialog
       open={open}
@@ -583,6 +713,15 @@ const ImagePreviewDialog = ({
       <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
         {/* The actual dialog panel  */}
         <Dialog.Panel className="mx-auto rounded bg-white max-w-screen-sm ">
+          {Boolean(isCropping) && (
+            <animated.div
+              className="cropped-area"
+              style={{ x, y, width, height }}
+              {...bind()}
+            >
+              <div className="resizer" ref={dragEl}></div>
+            </animated.div>
+          )}
           {children}
         </Dialog.Panel>
       </div>
