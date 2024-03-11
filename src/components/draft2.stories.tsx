@@ -15,7 +15,9 @@ import StarterKit from "@tiptap/starter-kit";
 import { VariantProps, cva } from "class-variance-authority";
 import React, {
   ButtonHTMLAttributes,
+  DialogHTMLAttributes,
   HTMLAttributes,
+  PropsWithChildren,
   forwardRef,
   useEffect,
   useRef,
@@ -33,13 +35,14 @@ import {
   GrUnorderedList,
 } from "react-icons/gr";
 import { IoOpenOutline } from "react-icons/io5";
-import { MdCloseFullscreen } from "react-icons/md";
+import { MdCloseFullscreen, MdSettingsInputComponent } from "react-icons/md";
 import { PiDotsThree } from "react-icons/pi";
 import { SpringValue, animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import { Underline } from "@tiptap/extension-underline";
 import { ListItem } from "@tiptap/extension-list-item";
 import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
+import { Dialog } from "@headlessui/react";
 
 interface useNoteEditorProps {
   content: string;
@@ -246,6 +249,28 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     editor?.on("update", (e) => {
       setContent && setContent(() => e.editor.getHTML());
     });
+    const [open, setIsOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const imageMimeType = /image\/(png|jpg|jpeg)/i;
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [imageData, setImageData] = useState<string | null>(null);
+    useEffect(() => {
+      if (open) {
+        const image = new Image();
+        if (imageData !== null) {
+          image.onload = () => {
+            const context = canvasRef.current?.getContext("2d");
+            if (context !== null && context !== undefined) {
+              context.canvas.width = image.width;
+              context.canvas.height = image.height;
+              context.drawImage(image, 0, 0, image.width, image.height);
+              setIsOpen(() => true);
+            }
+          };
+          image.src = imageData;
+        }
+      }
+    }, [canvasRef, imageData, open]);
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
@@ -277,6 +302,38 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           </div>
           <div className="fixed top-8 bottom-8 left-1 right-1">
             <NoteEditor editable springs={springs} editor={editor} />
+            <ImagePreviewDialog open={open} setIsOpen={setIsOpen}>
+              <canvas ref={canvasRef} className="w-full h-full p-4" />
+              <button
+                onClick={() => {
+                  setIsOpen(() => false);
+                }}
+              >
+                Close
+              </button>
+            </ImagePreviewDialog>
+            <input
+              type="file"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={(e) => {
+                if (e.target.files !== null) {
+                  const file = e.target.files[0];
+                  if (!file.type.match(imageMimeType)) {
+                    return;
+                  }
+                  const fileReader = new FileReader();
+                  fileReader.onload = (e) => {
+                    const { result } = e.target as FileReader;
+                    if (result?.toString() !== undefined) {
+                      setImageData(result?.toString());
+                      setIsOpen(() => true);
+                    }
+                  };
+                  fileReader.readAsDataURL(file);
+                }
+              }}
+            />
           </div>
           <div className="fixed bottom-0 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
             <div>
@@ -318,9 +375,6 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               >
                 <GrStrikeThrough className="invisible group-focus-within/note:visible hover:visible" />
               </NoteCommandButton>
-              {/* <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
-                <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
-              </button> */}
               <NoteCommandButton
                 className={`${
                   editor?.isActive("bulletList") ? "bg-zinc-200/60" : ""
@@ -332,9 +386,13 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               >
                 <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
               </NoteCommandButton>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              <NoteCommandButton
+                onClick={() => {
+                  fileInputRef.current?.click();
+                }}
+              >
                 <GrImage className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
+              </NoteCommandButton>
             </div>
             <div></div>
           </div>
@@ -497,6 +555,38 @@ const NoteCommandButton = ({
     >
       {children}
     </button>
+  );
+};
+
+interface ImagePreviewDialogProps {
+  open?: boolean;
+  setIsOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const ImagePreviewDialog = ({
+  open = false,
+  setIsOpen,
+  children,
+}: PropsWithChildren<ImagePreviewDialogProps>) => {
+  return (
+    <Dialog
+      open={open}
+      onClose={() => {
+        setIsOpen && setIsOpen(() => false);
+      }}
+      className="relative z-50"
+    >
+      {/* The backdrop, rendered as a fixed sibling to the panel container */}
+      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      {/* Full-screen container to center the panel */}
+      <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
+        {/* The actual dialog panel  */}
+        <Dialog.Panel className="mx-auto rounded bg-white max-w-screen-sm ">
+          {children}
+        </Dialog.Panel>
+      </div>
+    </Dialog>
   );
 };
 

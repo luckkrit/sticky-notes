@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@floating-ui/react": "^0.26.9",
+    "@headlessui/react": "^1.7.18",
     "@react-spring/types": "^9.7.3",
     "@react-spring/web": "^9.7.3",
     "@tiptap/extension-image": "^2.2.4",
