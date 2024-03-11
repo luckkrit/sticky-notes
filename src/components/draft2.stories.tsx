@@ -39,19 +39,38 @@ import { MdCloseFullscreen } from "react-icons/md";
 import { PiDotsThree } from "react-icons/pi";
 import { SpringValue, animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
+import { Underline } from "@tiptap/extension-underline";
+import { ListItem } from "@tiptap/extension-list-item";
+import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
 
 interface useNoteEditorProps {
   content: string;
 }
 const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
-  const extensions = [StarterKit];
+  const extensions = [
+    Underline,
+    TextStyle.configure({
+      types: [ListItem.name],
+    } as Partial<TextStyleOptions>),
+    StarterKit.configure({
+      bulletList: {
+        keepMarks: true,
+        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      },
+      orderedList: {
+        keepMarks: true,
+        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+      },
+    }),
+  ];
 
   const editor = useEditor({
     extensions,
     content,
     editorProps: {
       attributes: {
-        class: "overflow-auto outline-none no-scrollbar p-2",
+        class:
+          "overflow-auto outline-none no-scrollbar p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none",
       },
     },
   });
@@ -169,6 +188,9 @@ const useResizable = ({
       }
     },
     {
+      pointer: {
+        keys: false,
+      },
       from: (event) => {
         const isResizing = event.target === dragEl.current;
         if (isResizing) {
@@ -269,18 +291,49 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               >
                 <GrBold className="invisible group-focus-within/note:visible hover:visible" />
               </NoteCommandButton>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              <NoteCommandButton
+                className={`${
+                  editor?.isActive("italic") ? "bg-zinc-200/60" : ""
+                }`}
+                disabled={!editor?.can().chain().focus().toggleItalic().run()}
+                onClick={() => editor?.chain().focus().toggleItalic().run()}
+              >
                 <GrItalic className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              </NoteCommandButton>
+              <NoteCommandButton
+                className={`${
+                  editor?.isActive("underline") ? "bg-zinc-200/60" : ""
+                }`}
+                disabled={
+                  !editor?.can().chain().focus().toggleUnderline().run()
+                }
+                onClick={() => editor?.chain().focus().toggleUnderline().run()}
+              >
                 <GrUnderline className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              </NoteCommandButton>
+              <NoteCommandButton
+                className={`${
+                  editor?.isActive("strike") ? "bg-zinc-200/60" : ""
+                }`}
+                disabled={!editor?.can().chain().focus().toggleStrike().run()}
+                onClick={() => editor?.chain().focus().toggleStrike().run()}
+              >
                 <GrStrikeThrough className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              </NoteCommandButton>
+              {/* <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
                 <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
-              </button>
+              </button> */}
+              <NoteCommandButton
+                className={`${
+                  editor?.isActive("bulletList") ? "bg-zinc-200/60" : ""
+                }`}
+                disabled={
+                  !editor?.can().chain().focus().toggleBulletList().run()
+                }
+                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+              >
+                <GrUnorderedList className="invisible group-focus-within/note:visible hover:visible" />
+              </NoteCommandButton>
               <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
                 <GrImage className="invisible group-focus-within/note:visible hover:visible" />
               </button>
@@ -316,7 +369,7 @@ const NoteEditor = ({ editable = false, springs, editor }: NoteEditorProps) => {
   if (attributes !== undefined) {
     attributes = {
       ...attributes,
-      style: `width:${width.get()}px;height:${height.get() - 41}px`,
+      style: `width:${width.get()}px;height:${height.get() - 81}px`,
     };
   }
   useEffect(() => {
