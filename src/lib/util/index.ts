@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx"
+import { PixelCrop } from "react-image-crop"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -10,6 +11,7 @@ const TO_RADIANS = Math.PI / 180
 export async function canvasPreview(
     image: HTMLImageElement,
     canvas: HTMLCanvasElement,
+    canvas2: HTMLCanvasElement,
     crop: { x: number, y: number, width: number, height: number },
     scale = 1,
     rotate = 0
@@ -19,9 +21,22 @@ export async function canvasPreview(
     if (!ctx) {
         throw new Error('No 2d context')
     }
+    const bounds = canvas2.getBoundingClientRect()
+    let width = 1
+    let height = 1
+    if (bounds !== undefined) {
+        width = bounds.width
+        height = bounds.height
+    }
+    // console.log(canvas2.getBoundingClientRect())
+    // const scaleY = image.naturalHeight / image.height
+    // const scaleX = image.naturalWidth / image.width
+    // const scaleX = image.naturalWidth / 608
+    // const scaleY = image.naturalHeight / 410.67
+    const scaleX = image.naturalWidth / width
+    const scaleY = image.naturalHeight / height
 
-    const scaleX = image.naturalWidth / image.width
-    const scaleY = image.naturalHeight / image.height
+    // console.log(scaleX, scaleY)
     // devicePixelRatio slightly increases sharpness on retina devices
     // at the expense of slightly slower render times and needing to
     // size the image back down if you want to download/upload and be
@@ -57,4 +72,9 @@ export async function canvasPreview(
     ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, 0, 0, image.naturalWidth, image.naturalHeight)
 
     ctx.restore()
+}
+export async function dataUrlToFile(dataUrl: string, fileName: string): Promise<File> {
+    const res: Response = await fetch(dataUrl); // grabbing the image data
+    const blob: Blob = await res.blob();
+    return new File([blob], fileName, { type: 'image/jpg' });
 }

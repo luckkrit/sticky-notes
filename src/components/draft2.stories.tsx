@@ -1,4 +1,4 @@
-import { canvasPreview, cn } from "@/lib/util";
+import { canvasPreview, cn, dataUrlToFile } from "@/lib/util";
 import {
   FloatingFocusManager,
   autoPlacement,
@@ -15,10 +15,13 @@ import StarterKit from "@tiptap/starter-kit";
 import { VariantProps, cva } from "class-variance-authority";
 import React, {
   ButtonHTMLAttributes,
+  CSSProperties,
   HTMLAttributes,
   PropsWithChildren,
   forwardRef,
+  memo,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -42,6 +45,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { ListItem } from "@tiptap/extension-list-item";
 import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
 import { Dialog } from "@headlessui/react";
+import { Image as TipTapImage } from "@tiptap/extension-image";
 
 interface useNoteEditorProps {
   content: string;
@@ -62,6 +66,12 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
         keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
       },
     }),
+    TipTapImage.configure({
+      allowBase64: true,
+      HTMLAttributes: {
+        class: "object-fit w-52 h-auto",
+      },
+    }),
   ];
 
   const editor = useEditor({
@@ -70,7 +80,7 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     editorProps: {
       attributes: {
         class:
-          "overflow-auto outline-none no-scrollbar p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none",
+          "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none fixed top-0 overflow-auto no-scrollbar",
       },
     },
   });
@@ -143,7 +153,7 @@ const StackNote = () => {
             </div>
           </div>
           <div className="fixed top-8 bottom-8 left-1 right-1">
-            <NoteEditor editor={editor} />
+            <NoteEditor editor={editor} footer={0} />
           </div>
         </div>
       </div>
@@ -156,6 +166,7 @@ interface UseResizableProps {
   w1?: number;
   h1?: number;
   dragEl: React.RefObject<HTMLDivElement>;
+  onChange: () => void;
 }
 const useResizable = ({
   x1 = 0,
@@ -163,12 +174,14 @@ const useResizable = ({
   w1 = 220,
   h1 = 220,
   dragEl,
+  onChange,
 }: UseResizableProps) => {
   const [springs, api] = useSpring(() => ({
     x: x1,
     y: y1,
     width: w1,
     height: h1,
+    onChange: onChange,
   }));
   const { x, y, width, height } = springs;
   const bind = useDrag(
@@ -237,16 +250,37 @@ interface ResizableNoteProps
 const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
   ({ className, onClose, content = "", setContent, ...props }, ref) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
+    const editor = useNoteEditor({ content });
+    const [count, setCount] = useState(0);
+    let timeoutId = -1;
+    const onUpdate = (e) => {
+      console.log("updated", e.editor.getHTML());
+      // clearTimeout(timeoutId);
+      // setTimeout(() => {
+      //   console.log("update");
+      setContent && setContent(() => e.editor.getHTML());
+      // }, 2000);
+    };
+    useEffect(() => {
+      editor?.on("update", onUpdate);
+      return () => {
+        editor?.off("update", onUpdate);
+      };
+    }, [editor]);
+    const onChange = () => {
+      console.log("on change");
+      setCount((o) => {
+        if (o > 50) o = 0;
+        return o + 1;
+      });
+    };
     const { springs, bind } = useResizable({
       x1: 0,
       y1: 0,
       w1: 220,
       h1: 200,
       dragEl,
-    });
-    const editor = useNoteEditor({ content });
-    editor?.on("update", (e) => {
-      setContent && setContent(() => e.editor.getHTML());
+      onChange: onChange,
     });
     const [open, setIsOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -274,6 +308,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         }
       }
     }, [canvasRef, imageData, open]);
+
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
@@ -303,8 +338,23 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </button>
             </div>
           </div>
-          <div className="fixed top-8 bottom-8 left-1 right-1">
-            <NoteEditor editable springs={springs} editor={editor} />
+          <div
+            className="fixed z-0 top-8 bottom-8 overflow-auto no-scrollbar"
+            style={{
+              width: springs.width.get(),
+              height: springs.height.get() - 81,
+            }}
+          >
+            <NoteEditor
+              editable
+              springs={springs}
+              editor={editor}
+              key={count}
+              style={{
+                width: springs.width.get(),
+                height: springs.height.get() - 81,
+              }}
+            />
             <ImagePreviewDialog
               open={open}
               setIsOpen={setIsOpen}
@@ -314,23 +364,41 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               <div className="p-4">
                 <canvas ref={canvasRef} className="w-full h-full" />
               </div>
-              <canvas ref={canvasPreviewRef} />
+              <canvas ref={canvasPreviewRef} className="w-0 h-0" />
               <button
                 onClick={() => {
-                  // setIsOpen(() => false);
                   const image = new Image();
                   image.onload = async () => {
                     const context = canvasPreviewRef?.current?.getContext("2d");
                     if (
                       context !== null &&
                       context !== undefined &&
-                      canvasPreviewRef.current !== null
+                      canvasPreviewRef.current !== null &&
+                      canvasRef.current !== null
                     ) {
                       await canvasPreview(
                         image,
                         canvasPreviewRef.current,
+                        canvasRef.current,
                         crop
                       );
+                      // console.log(canvasPreviewRef.current.toDataURL());
+                      editor
+                        ?.chain()
+                        .focus()
+                        .setImage({
+                          src: URL.createObjectURL(
+                            await dataUrlToFile(
+                              canvasPreviewRef.current.toDataURL(
+                                "image/jpg",
+                                50
+                              ),
+                              "image.jpg"
+                            )
+                          ),
+                        })
+                        .run();
+                      setIsOpen(() => false);
                     }
                   };
                   if (imageData !== undefined) {
@@ -338,7 +406,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
                   }
                 }}
               >
-                Close
+                Insert
               </button>
             </ImagePreviewDialog>
             <input
@@ -367,7 +435,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               }}
             />
           </div>
-          <div className="fixed bottom-0 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
+          <div className="fixed bg-amber-100 bottom-0 z-30 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
             <div>
               <NoteCommandButton
                 className={`${
@@ -430,7 +498,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           </div>
         </div>
         <div
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-50"
           ref={dragEl}
         ></div>
       </animated.div>
@@ -447,28 +515,43 @@ interface NoteEditorProps extends HTMLAttributes<HTMLElement> {
     height: SpringValue<number>;
   };
   editor: Editor | null;
+  style?: CSSProperties;
+  footer?: number;
 }
-const NoteEditor = ({ editable = false, springs, editor }: NoteEditorProps) => {
+const NoteEditor = ({
+  editable = false,
+  springs,
+  editor,
+  style,
+  footer = 81,
+}: NoteEditorProps) => {
   const { width, height } = springs || {
     width: new SpringValue(220),
     height: new SpringValue(160),
   };
-  let attributes = editor?.options.editorProps.attributes;
-  if (attributes !== undefined) {
-    attributes = {
-      ...attributes,
-      style: `width:${width.get()}px;height:${height.get() - 81}px`,
-    };
-  }
   useEffect(() => {
+    let attributes = editor?.options.editorProps.attributes;
+    if (attributes !== undefined) {
+      attributes = {
+        ...attributes,
+        style: `width:${width.get()}px;height:${height.get() - footer}px`,
+      };
+    }
     editor?.setEditable(editable);
     editor?.setOptions({
       editorProps: {
         attributes,
       },
     });
-  }, [width.get(), height.get(), editor, editable]);
-  return <EditorContent editor={editor} />;
+    // editor?.commands.focus();
+  }, [width, height, editor, editable, style]);
+  return (
+    <EditorContent
+      editor={editor}
+      className="w-full fixed top-8 bottom-8 overflow-auto no-scrollbar"
+      style={style}
+    />
+  );
 };
 interface NoteMenuProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   open?: boolean;
