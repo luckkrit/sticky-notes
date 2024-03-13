@@ -19,9 +19,7 @@ import React, {
   HTMLAttributes,
   PropsWithChildren,
   forwardRef,
-  memo,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -36,7 +34,7 @@ import {
   GrUnderline,
   GrUnorderedList,
 } from "react-icons/gr";
-import { IoOpenOutline } from "react-icons/io5";
+import { IoCheckmark, IoOpenOutline } from "react-icons/io5";
 import { MdCloseFullscreen } from "react-icons/md";
 import { PiDotsThree } from "react-icons/pi";
 import { SpringValue, animated, useSpring } from "@react-spring/web";
@@ -44,7 +42,7 @@ import { useDrag } from "@use-gesture/react";
 import { Underline } from "@tiptap/extension-underline";
 import { ListItem } from "@tiptap/extension-list-item";
 import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
-import { Dialog } from "@headlessui/react";
+import { Dialog, Popover } from "@headlessui/react";
 import { Image as TipTapImage } from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 
@@ -142,7 +140,7 @@ const StackNote = () => {
           <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
             <div></div>
             <div className="pr-2 pt-2 flex items-center">
-              <NoteMenu
+              <StackNoteMenu
                 open={openMenu}
                 key={count}
                 onOpen={() => {
@@ -258,7 +256,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const dragEl = useRef<HTMLDivElement | null>(null);
     const editor = useNoteEditor({ content });
     const [count, setCount] = useState(0);
-    const onUpdate = (e) => {
+    const onUpdate = (e: any) => {
       setContent && setContent(() => e.editor.getHTML());
     };
     useEffect(() => {
@@ -289,6 +287,8 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const canvasPreviewRef = useRef<HTMLCanvasElement>(null);
     const [imageData, setImageData] = useState<string | undefined>(undefined);
     const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
+    const [showMenu, setShowMenu] = useState(false);
+    // const [mouseLeave, setMouseLeave] = useState(false);
     useEffect(() => {
       if (open) {
         const image = new Image();
@@ -309,6 +309,19 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
       }
     }, [canvasRef, imageData, open]);
 
+    // useEffect(() => {
+    //   const clickOutside = () => {
+    //     if (mouseLeave) {
+    //       setShowMenu(() => false);
+    //       setMouseLeave(() => false);
+    //     }
+    //   };
+    //   document.addEventListener("click", clickOutside);
+    //   return () => {
+    //     document.removeEventListener("click", clickOutside);
+    //   };
+    // }, [mouseLeave]);
+
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
@@ -326,8 +339,13 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
                 <GrAdd className="invisible group-focus-within/note:visible hover:visible" />
               </button>
             </div>
-            <div>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+            <div className="flex">
+              <button
+                className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
+                onClick={() => {
+                  setShowMenu(() => true);
+                }}
+              >
                 <PiDotsThree className="invisible group-focus-within/note:visible hover:visible" />
               </button>
               <button
@@ -338,6 +356,32 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </button>
             </div>
           </div>
+          {/* <div
+            onMouseLeave={() => {
+              console.log("leave");
+              setMouseLeave(() => true);
+            }}
+            className={`fixed z-10 w-full ${showMenu ? "visible" : "hidden"}`}
+          >
+            <div className="grid grid-cols-7">
+              <button className="min-w-2 h-12 bg-amber-200 grid place-content-center">
+                <IoCheckmark />
+              </button>
+              <button className="min-w-2 h-12 bg-green-200"></button>
+              <button className="min-w-2 h-12 bg-fuchsia-200"></button>
+              <button className="min-w-2 h-12 bg-purple-200"></button>
+              <button className="min-w-2 h-12 bg-sky-200"></button>
+              <button className="min-w-2 h-12 bg-slate-200"></button>
+              <button className="min-w-2 h-12 bg-gray-400"></button>
+            </div>
+            <button className="w-full bg-slate-200 text-red-500 p-2 hover:bg-zinc-200">
+              <div className="flex gap-2 justify-start items-center">
+                <BsTrash />
+                <div className="ml-2">Delete note</div>
+              </div>
+            </button>
+          </div> */}
+          <NoteResizableMenu showMenu={showMenu} setShowMenu={setShowMenu} />
           <div
             className="fixed z-0 top-8 bottom-8 overflow-auto no-scrollbar"
             style={{
@@ -553,20 +597,20 @@ const NoteEditor = ({
     />
   );
 };
-interface NoteMenuProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface StackNoteMenuProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   open?: boolean;
   hasOpened?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
   onDelete?: () => void;
 }
-const NoteMenu = ({
+const StackNoteMenu = ({
   open = false,
   hasOpened = false,
   onOpen,
   onClose,
   onDelete,
-}: NoteMenuProps) => {
+}: StackNoteMenuProps) => {
   const [isOpen, setIsOpen] = useState(open);
   const [isOpenNote, setIsOpenNote] = useState(hasOpened);
   const { refs, floatingStyles, context } = useFloating({
@@ -598,7 +642,7 @@ const NoteMenu = ({
             style={floatingStyles}
             {...getFloatingProps()}
           >
-            <NoteMenuItem
+            <StackNoteMenuItem
               onMenuItemClick={() => {
                 if (!isOpenNote) {
                   onOpen && onOpen();
@@ -620,8 +664,8 @@ const NoteMenu = ({
                   <div>Open Note</div>
                 </>
               )}
-            </NoteMenuItem>
-            <NoteMenuItem
+            </StackNoteMenuItem>
+            <StackNoteMenuItem
               onMenuItemClick={() => {
                 setIsOpen(false);
                 onDelete && onDelete();
@@ -629,7 +673,7 @@ const NoteMenu = ({
             >
               <BsTrash />
               <div>Delete Note</div>
-            </NoteMenuItem>
+            </StackNoteMenuItem>
           </div>
         </FloatingFocusManager>
       )}
@@ -640,7 +684,10 @@ const NoteMenu = ({
 interface NoteMenuItemProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   onMenuItemClick?: () => void;
 }
-const NoteMenuItem = ({ onMenuItemClick, children }: NoteMenuItemProps) => {
+const StackNoteMenuItem = ({
+  onMenuItemClick,
+  children,
+}: NoteMenuItemProps) => {
   return (
     <button
       className="flex gap-2 justify-between items-center p-2 w-32 hover:bg-slate-200 z-50"
@@ -809,6 +856,56 @@ const ImagePreviewDialog = ({
         </Dialog.Panel>
       </div>
     </Dialog>
+  );
+};
+
+interface NoteResizableMenuProps {
+  showMenu: boolean;
+  setShowMenu: React.Dispatch<React.SetStateAction<boolean>>;
+}
+const NoteResizableMenu = ({
+  showMenu,
+  setShowMenu,
+}: NoteResizableMenuProps) => {
+  const [mouseLeave, setMouseLeave] = useState(false);
+  useEffect(() => {
+    const clickOutSide = () => {
+      if (mouseLeave && showMenu) {
+        setShowMenu(() => false);
+        setMouseLeave(() => false);
+      }
+    };
+    document.addEventListener("click", clickOutSide);
+    return () => {
+      document.removeEventListener("click", clickOutSide);
+    };
+  }, [showMenu, mouseLeave]);
+  useEffect(() => {}, [mouseLeave]);
+  return (
+    <div
+      onMouseLeave={() => {
+        setMouseLeave(() => true);
+      }}
+      className={`fixed z-10 w-full ${showMenu ? "visible" : "hidden"}`}
+    >
+      <div className="grid grid-cols-7">
+        <button className="min-w-2 h-12 bg-amber-200 grid place-content-center">
+          <IoCheckmark />
+        </button>
+        <button className="min-w-2 h-12 bg-green-200"></button>
+        <button className="min-w-2 h-12 bg-fuchsia-200"></button>
+        <button className="min-w-2 h-12 bg-purple-200"></button>
+        <button className="min-w-2 h-12 bg-sky-200"></button>
+        <button className="min-w-2 h-12 bg-slate-200"></button>
+        <button className="min-w-2 h-12 bg-gray-400"></button>
+      </div>
+      <button className="w-full bg-slate-200 text-red-500 p-2 hover:bg-zinc-200">
+        <div className="flex gap-2 justify-start items-center">
+          <BsTrash />
+          <div className="ml-2">Delete note</div>
+        </div>
+      </button>
+    </div>
   );
 };
 
