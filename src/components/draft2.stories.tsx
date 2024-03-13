@@ -886,7 +886,7 @@ const NoteResizableMenu = ({
       onMouseLeave={() => {
         setMouseLeave(() => true);
       }}
-      className={`fixed z-10 w-full ${showMenu ? "visible" : "hidden"}`}
+      className={`fixed z-10 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
         <button className="min-w-2 h-12 bg-amber-200 grid place-content-center">
@@ -899,7 +899,7 @@ const NoteResizableMenu = ({
         <button className="min-w-2 h-12 bg-slate-200"></button>
         <button className="min-w-2 h-12 bg-gray-400"></button>
       </div>
-      <button className="w-full bg-slate-200 text-red-500 p-2 hover:bg-zinc-200">
+      <button className="w-full bg-slate-100 text-red-500 p-2 hover:bg-zinc-200">
         <div className="flex gap-2 justify-start items-center">
           <BsTrash />
           <div className="ml-2">Delete note</div>
