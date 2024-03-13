@@ -46,6 +46,7 @@ import { ListItem } from "@tiptap/extension-list-item";
 import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
 import { Dialog } from "@headlessui/react";
 import { Image as TipTapImage } from "@tiptap/extension-image";
+import Placeholder from "@tiptap/extension-placeholder";
 
 interface useNoteEditorProps {
   content: string;
@@ -69,8 +70,13 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     TipTapImage.configure({
       allowBase64: true,
       HTMLAttributes: {
-        class: "object-fit w-52 h-auto",
+        class: "object-scale-down min-w-52 h-auto",
       },
+    }),
+    Placeholder.configure({
+      placeholder: "Take a note...",
+      emptyEditorClass:
+        "cursor-text before:content-[attr(data-placeholder)] before:absolute before:top-2 before:left-2 before:text-mauve-11 before:opacity-50 before-pointer-events-none",
     }),
   ];
 
@@ -98,7 +104,7 @@ const StackNote = () => {
   const [count, setCount] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
-  const [content, setContent] = useState("<p>Hello World!</p>");
+  const [content, setContent] = useState("");
   const editor = useNoteEditor({ content });
   return (
     <>
@@ -252,14 +258,8 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const dragEl = useRef<HTMLDivElement | null>(null);
     const editor = useNoteEditor({ content });
     const [count, setCount] = useState(0);
-    let timeoutId = -1;
     const onUpdate = (e) => {
-      console.log("updated", e.editor.getHTML());
-      // clearTimeout(timeoutId);
-      // setTimeout(() => {
-      //   console.log("update");
       setContent && setContent(() => e.editor.getHTML());
-      // }, 2000);
     };
     useEffect(() => {
       editor?.on("update", onUpdate);
