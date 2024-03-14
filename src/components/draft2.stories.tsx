@@ -889,15 +889,13 @@ const NoteResizableMenu = ({
       className={`fixed z-10 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
-        <button className="min-w-2 h-12 bg-amber-200 grid place-content-center">
-          <IoCheckmark />
-        </button>
-        <button className="min-w-2 h-12 bg-green-200"></button>
-        <button className="min-w-2 h-12 bg-fuchsia-200"></button>
-        <button className="min-w-2 h-12 bg-purple-200"></button>
-        <button className="min-w-2 h-12 bg-sky-200"></button>
-        <button className="min-w-2 h-12 bg-slate-200"></button>
-        <button className="min-w-2 h-12 bg-gray-400"></button>
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-amber-200 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-green-300 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-pink-300 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-violet-300 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-cyan-300 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-zinc-300 grid place-content-center" />
+        <NoteResizablePaletteButton className="min-w-2 h-12 bg-neutral-500 grid place-content-center" />
       </div>
       <button className="w-full bg-slate-100 text-red-500 p-2 hover:bg-zinc-200">
         <div className="flex gap-2 justify-start items-center">
@@ -906,6 +904,20 @@ const NoteResizableMenu = ({
         </div>
       </button>
     </div>
+  );
+};
+
+interface NoteResizablePaletteButton
+  extends ButtonHTMLAttributes<HTMLButtonElement> {}
+
+const NoteResizablePaletteButton = ({
+  className,
+  ...props
+}: NoteResizablePaletteButton) => {
+  return (
+    <button className={cn(className)} {...props}>
+      <IoCheckmark />
+    </button>
   );
 };
 
