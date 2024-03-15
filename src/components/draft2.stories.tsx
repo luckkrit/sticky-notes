@@ -241,7 +241,35 @@ const useResizable = ({
   return { springs, bind };
 };
 const resizableNoteVariants = cva("", {
-  variants: {},
+  variants: {
+    background: {
+      amber: "bg-amber-100",
+      green: "bg-green-100",
+      pink: "bg-pink-100",
+      violet: "bg-violet-100",
+      cyan: "bg-cyan-100",
+      zinc: "bg-zinc-100",
+      neutral: "bg-neutral-400",
+    },
+    border: {
+      amber: "border-amber-200",
+      green: "border-green-300",
+      pink: "border-pink-300",
+      violet: "border-violet-300",
+      cyan: "border-cyan-300",
+      zinc: "border-zinc-300",
+      neutral: "border-neutral-500",
+    },
+    headerBackground: {
+      amber: "bg-amber-200",
+      green: "bg-green-300",
+      pink: "bg-pink-300",
+      violet: "bg-violet-300",
+      cyan: "bg-cyan-300",
+      zinc: "bg-zinc-300",
+      neutral: "bg-neutral-500",
+    },
+  },
 });
 interface ResizableNoteProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -309,19 +337,6 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
       }
     }, [canvasRef, imageData, open]);
 
-    // useEffect(() => {
-    //   const clickOutside = () => {
-    //     if (mouseLeave) {
-    //       setShowMenu(() => false);
-    //       setMouseLeave(() => false);
-    //     }
-    //   };
-    //   document.addEventListener("click", clickOutside);
-    //   return () => {
-    //     document.removeEventListener("click", clickOutside);
-    //   };
-    // }, [mouseLeave]);
-
     return (
       <animated.div
         style={{ ...springs, touchAction: "none" }}
@@ -356,31 +371,6 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </button>
             </div>
           </div>
-          {/* <div
-            onMouseLeave={() => {
-              console.log("leave");
-              setMouseLeave(() => true);
-            }}
-            className={`fixed z-10 w-full ${showMenu ? "visible" : "hidden"}`}
-          >
-            <div className="grid grid-cols-7">
-              <button className="min-w-2 h-12 bg-amber-200 grid place-content-center">
-                <IoCheckmark />
-              </button>
-              <button className="min-w-2 h-12 bg-green-200"></button>
-              <button className="min-w-2 h-12 bg-fuchsia-200"></button>
-              <button className="min-w-2 h-12 bg-purple-200"></button>
-              <button className="min-w-2 h-12 bg-sky-200"></button>
-              <button className="min-w-2 h-12 bg-slate-200"></button>
-              <button className="min-w-2 h-12 bg-gray-400"></button>
-            </div>
-            <button className="w-full bg-slate-200 text-red-500 p-2 hover:bg-zinc-200">
-              <div className="flex gap-2 justify-start items-center">
-                <BsTrash />
-                <div className="ml-2">Delete note</div>
-              </div>
-            </button>
-          </div> */}
           <NoteResizableMenu showMenu={showMenu} setShowMenu={setShowMenu} />
           <div
             className="fixed z-0 top-8 bottom-8 overflow-auto no-scrollbar"
@@ -889,13 +879,13 @@ const NoteResizableMenu = ({
       className={`fixed z-10 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-amber-200 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-green-300 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-pink-300 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-violet-300 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-cyan-300 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-zinc-300 grid place-content-center" />
-        <NoteResizablePaletteButton className="min-w-2 h-12 bg-neutral-500 grid place-content-center" />
+        <ColorPaletteButton background={"amber"} />
+        <ColorPaletteButton background={"green"} />
+        <ColorPaletteButton background={"pink"} />
+        <ColorPaletteButton background={"violet"} />
+        <ColorPaletteButton background={"cyan"} />
+        <ColorPaletteButton background={"zinc"} />
+        <ColorPaletteButton background={"neutral"} />
       </div>
       <button className="w-full bg-slate-100 text-red-500 p-2 hover:bg-zinc-200">
         <div className="flex gap-2 justify-start items-center">
@@ -907,15 +897,40 @@ const NoteResizableMenu = ({
   );
 };
 
-interface NoteResizablePaletteButton
-  extends ButtonHTMLAttributes<HTMLButtonElement> {}
+const colorPaletteButtonVariants = cva(
+  "min-w-2 h-12 grid place-content-center",
+  {
+    variants: {
+      background: {
+        amber: "bg-amber-200",
+        green: "bg-green-300",
+        pink: "bg-pink-300",
+        violet: "bg-violet-300",
+        cyan: "bg-cyan-300",
+        zinc: "bg-zinc-300",
+        neutral: "bg-neutral-500",
+      },
+    },
+    defaultVariants: {
+      background: "amber",
+    },
+  }
+);
 
-const NoteResizablePaletteButton = ({
+interface ColorPaletteButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof colorPaletteButtonVariants> {}
+
+const ColorPaletteButton = ({
   className,
+  background,
   ...props
-}: NoteResizablePaletteButton) => {
+}: ColorPaletteButtonProps) => {
   return (
-    <button className={cn(className)} {...props}>
+    <button
+      className={cn(colorPaletteButtonVariants({ className, background }))}
+      {...props}
+    >
       <IoCheckmark />
     </button>
   );
