@@ -251,7 +251,7 @@ const resizableNoteVariants = cva("", {
       zinc: "bg-zinc-100",
       neutral: "bg-neutral-400",
     },
-    border: {
+    borderBackground: {
       amber: "border-amber-200",
       green: "border-green-300",
       pink: "border-pink-300",
@@ -280,7 +280,19 @@ interface ResizableNoteProps
   setContent?: React.Dispatch<React.SetStateAction<string>>;
 }
 const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
-  ({ className, onClose, content = "", setContent, ...props }, ref) => {
+  (
+    {
+      background,
+      headerBackground,
+      borderBackground,
+      className,
+      onClose,
+      content = "",
+      setContent,
+      ...props
+    },
+    ref
+  ) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
     const editor = useNoteEditor({ content });
     const [count, setCount] = useState(0);
@@ -344,11 +356,20 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         className={cn("group/note w-fit h-fit drop-shadow-md ", className)}
       >
         <div
-          className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
+          // className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
+          className={cn(
+            resizableNoteVariants({ className, background, borderBackground }),
+            "flex flex-col  min-w-[220px] min-h-[200px] w-full h-full"
+          )}
           {...props}
           ref={ref}
         >
-          <div className="flex justify-between bg-amber-200 h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8">
+          <div
+            className={cn(
+              "flex justify-between h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8",
+              resizableNoteVariants({ headerBackground, className })
+            )}
+          >
             <div>
               <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
                 <GrAdd className="invisible group-focus-within/note:visible hover:visible" />
@@ -400,6 +421,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </div>
               <canvas ref={canvasPreviewRef} className="w-0 h-0" />
               <button
+                className="float-right mr-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 focus:outline-none "
                 onClick={() => {
                   const image = new Image();
                   image.onload = async () => {
@@ -469,7 +491,12 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               }}
             />
           </div>
-          <div className="fixed bg-amber-100 bottom-0 z-30 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1">
+          <div
+            className={cn(
+              "fixed bottom-0 z-30 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1",
+              resizableNoteVariants({ className, background })
+            )}
+          >
             <div>
               <NoteCommandButton
                 className={`${
@@ -938,6 +965,25 @@ const ColorPaletteButton = ({
 
 const meta: Meta<typeof Note> = {
   component: Note,
+  args: {
+    background: "amber",
+    borderBackground: "amber",
+    headerBackground: "amber",
+  },
+  argTypes: {
+    background: {
+      control: "radio",
+      options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
+    },
+    borderBackground: {
+      control: "radio",
+      options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
+    },
+    headerBackground: {
+      control: "radio",
+      options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
+    },
+  },
 };
 export default meta;
 
@@ -950,7 +996,13 @@ export const Draft1: Story = {
 };
 
 export const Draft2: Story = {
-  render: () => {
-    return <ResizableNote />;
+  render: ({ background, borderBackground, headerBackground }) => {
+    return (
+      <ResizableNote
+        background={background}
+        borderBackground={borderBackground}
+        headerBackground={headerBackground}
+      />
+    );
   },
 };
