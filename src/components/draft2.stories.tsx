@@ -158,7 +158,34 @@ const ListNote = () => {
   );
 };
 
-const StackNote = () => {
+const stackNoteVariants = cva("", {
+  variants: {
+    background: {
+      amber: "bg-amber-100",
+      green: "bg-green-100",
+      pink: "bg-pink-100",
+      violet: "bg-violet-100",
+      cyan: "bg-cyan-100",
+      zinc: "bg-zinc-100",
+      neutral: "bg-neutral-400",
+    },
+    borderBackground: {
+      amber: "border-amber-200",
+      green: "border-green-300",
+      pink: "border-pink-300",
+      violet: "border-violet-300",
+      cyan: "border-cyan-300",
+      zinc: "border-zinc-300",
+      neutral: "border-neutral-500",
+    },
+  },
+});
+interface StackNoteProps
+  extends HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof stackNoteVariants> {
+  variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
+}
+const StackNote = ({ variant }: StackNoteProps) => {
   const [count, setCount] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
@@ -168,14 +195,22 @@ const StackNote = () => {
     <>
       {isFolded && (
         <ResizableNote
-          className="absolute z-50"
+          className="absolute z-20"
           onClose={() => setIsFolded(false)}
           content={content}
           setContent={setContent}
+          variant={variant}
         />
       )}
       <div
-        className="group/note w-fit h-fit drop-shadow-md"
+        className={cn(
+          "flex flex-col  w-[220px] h-[200px] group-hover/note:bg-amber-950/10 group-hover/note:shadow-md",
+          isFolded === true ? "folded after:folded-amber-after" : "",
+          stackNoteVariants({
+            background: variant,
+            borderBackground: variant,
+          })
+        )}
         onMouseEnter={() => {
           setCount((o) => {
             if (o > 20) o = 0;
@@ -193,8 +228,8 @@ const StackNote = () => {
       >
         <div
           className={cn(
-            "flex flex-col bg-amber-100 border-amber-200 w-[220px] h-[200px] group-hover/note:bg-amber-950/10 group-hover/note:shadow-md",
-            isFolded === true ? "folded after:folded-amber-after" : ""
+            "flex justify-between border-t-1 group-hover/note:border-amber-950/5",
+            stackNoteVariants({ borderBackground: variant })
           )}
         >
           <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
@@ -313,21 +348,21 @@ const resizableNoteVariants = cva("", {
     },
     borderBackground: {
       amber: "border-amber-200",
-      green: "border-green-300",
-      pink: "border-pink-300",
-      violet: "border-violet-300",
-      cyan: "border-cyan-300",
-      zinc: "border-zinc-300",
-      neutral: "border-neutral-500",
+      green: "border-green-200",
+      pink: "border-pink-200",
+      violet: "border-violet-200",
+      cyan: "border-cyan-200",
+      zinc: "border-zinc-200",
+      neutral: "border-neutral-200",
     },
     headerBackground: {
       amber: "bg-amber-200",
-      green: "bg-green-300",
-      pink: "bg-pink-300",
-      violet: "bg-violet-300",
-      cyan: "bg-cyan-300",
-      zinc: "bg-zinc-300",
-      neutral: "bg-neutral-500",
+      green: "bg-green-200",
+      pink: "bg-pink-200",
+      violet: "bg-violet-200",
+      cyan: "bg-cyan-200",
+      zinc: "bg-zinc-200",
+      neutral: "bg-neutral-200",
     },
   },
 });
@@ -338,19 +373,11 @@ interface ResizableNoteProps
   onClose?: () => void;
   content?: string;
   setContent?: React.Dispatch<React.SetStateAction<string>>;
+  variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
 }
 const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
   (
-    {
-      background,
-      headerBackground,
-      borderBackground,
-      className,
-      onClose,
-      content = "",
-      setContent,
-      ...props
-    },
+    { variant, className, onClose, content = "", setContent, ...props },
     ref
   ) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
@@ -418,16 +445,20 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         <div
           // className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
           className={cn(
-            resizableNoteVariants({ className, background, borderBackground }),
-            "flex flex-col  min-w-[220px] min-h-[200px] w-full h-full"
+            resizableNoteVariants({
+              className,
+              background: variant,
+              borderBackground: variant,
+            }),
+            "flex flex-col min-w-[220px] min-h-[200px] w-full h-full"
           )}
           {...props}
           ref={ref}
         >
           <div
             className={cn(
-              "flex justify-between h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8",
-              resizableNoteVariants({ headerBackground, className })
+              "flex justify-between h-0 group-focus-within/note:h-8 transition-all has-[:hover]:h-8 w-full",
+              resizableNoteVariants({ headerBackground: variant, className })
             )}
           >
             <div>
@@ -563,7 +594,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           <div
             className={cn(
               "fixed bottom-0 z-30 flex justify-between invisible group-focus-within/note:visible transition-all has-[:hover]:visible border-t border-t-stone-200 w-full p-1",
-              resizableNoteVariants({ className, background })
+              resizableNoteVariants({ className, background: variant })
             )}
           >
             <div>
@@ -972,7 +1003,7 @@ const NoteResizableMenu = ({
       onMouseLeave={() => {
         setMouseLeave(() => true);
       }}
-      className={`fixed z-10 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
+      className={`fixed z-20 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
         <ColorPaletteButton background={"amber"} />
@@ -1035,20 +1066,10 @@ const ColorPaletteButton = ({
 const meta: Meta<typeof Note> = {
   component: Note,
   args: {
-    background: "amber",
-    borderBackground: "amber",
-    headerBackground: "amber",
+    variant: "amber",
   },
   argTypes: {
-    background: {
-      control: "radio",
-      options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
-    },
-    borderBackground: {
-      control: "radio",
-      options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
-    },
-    headerBackground: {
+    variant: {
       control: "radio",
       options: ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"],
     },
@@ -1059,20 +1080,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Draft1: Story = {
-  render: () => {
-    return <StackNote />;
+  render: ({ variant }) => {
+    return <StackNote variant={variant} />;
   },
 };
 
 export const Draft2: Story = {
-  render: ({ background, borderBackground, headerBackground }) => {
-    return (
-      <ResizableNote
-        background={background}
-        borderBackground={borderBackground}
-        headerBackground={headerBackground}
-      />
-    );
+  render: ({ variant }) => {
+    return <ResizableNote variant={variant} />;
   },
 };
 
