@@ -324,8 +324,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
   ) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
     const editor = useNoteEditor({ content });
-    const [, updateState] = React.useState({});
-    const forceUpdate = React.useCallback(() => updateState({}), []);
+    const [count, setCount] = useState(0);
     const onUpdate = (e: any) => {
       setContent && setContent(() => e.editor.getHTML());
     };
@@ -337,7 +336,10 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     }, [editor]);
     const onChange = () => {
       console.log("on change");
-      forceUpdate();
+      setCount((o) => {
+        if (o > 50) o = 0;
+        return o + 1;
+      });
     };
     const { springs, bind } = useResizable({
       x1: 0,
@@ -435,6 +437,7 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               editable
               springs={springs}
               editor={editor}
+              key={count}
               style={{
                 width: springs.width.get(),
                 height: springs.height.get() - 81,
