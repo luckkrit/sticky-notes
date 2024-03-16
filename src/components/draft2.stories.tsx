@@ -37,7 +37,7 @@ import {
 import { IoCheckmark, IoOpenOutline } from "react-icons/io5";
 import { MdCloseFullscreen } from "react-icons/md";
 import { PiDotsThree } from "react-icons/pi";
-import { SpringValue, animated, useSpring } from "@react-spring/web";
+import { SpringValue, animated, useSpring, useTrail } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import { Underline } from "@tiptap/extension-underline";
 import { ListItem } from "@tiptap/extension-list-item";
@@ -45,6 +45,7 @@ import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
 import { Dialog, Popover } from "@headlessui/react";
 import { Image as TipTapImage } from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
+import { LiaSearchSolid } from "react-icons/lia";
 
 interface useNoteEditorProps {
   content: string;
@@ -96,6 +97,65 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
 
 const Note = () => {
   return <></>;
+};
+
+const ListNote = () => {
+  const colors = [
+    "amber",
+    "green",
+    "pink",
+    "violet",
+    "cyan",
+    "zinc",
+    "neutral",
+  ];
+  const randomColors = () => {
+    const index = Math.floor(Math.random() * colors.length);
+    return colors[index];
+  };
+  const notes = Array.from({ length: 16 }, (_, k) => ({
+    id: k,
+    color: randomColors(),
+  }));
+  const trailSprings = useTrail(notes.length, {
+    from: { transform: "translateX(-100px)" },
+    to: { transform: "translateX(100px)" },
+  });
+  return (
+    <div className="p-4 border w-80">
+      <div className="flex justify-between">
+        <button>
+          <GrAdd />
+        </button>
+        <button>
+          <GrClose />
+        </button>
+      </div>
+      <div className="font-bold text-xl my-2">Sticky Notes</div>
+      <div className="relative mb-2">
+        <input
+          type="text"
+          className="bg-gray-200 w-full outline-none ps-2 py-1 pe-8"
+        />
+        <LiaSearchSolid className="absolute right-2 top-2" />
+      </div>
+      <div className="flex flex-col">
+        {trailSprings.map((spring, index) => (
+          <animated.div
+            key={index}
+            style={{
+              ...spring,
+              height: "100px",
+              width: "80px",
+              marginRight: "10px",
+            }}
+          >
+            {index} - {notes[index].color}
+          </animated.div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const StackNote = () => {
@@ -1013,5 +1073,11 @@ export const Draft2: Story = {
         headerBackground={headerBackground}
       />
     );
+  },
+};
+
+export const Draft3: Story = {
+  render: () => {
+    return <ListNote />;
   },
 };
