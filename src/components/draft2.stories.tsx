@@ -3,6 +3,8 @@ import {
   FloatingFocusManager,
   autoPlacement,
   autoUpdate,
+  flip,
+  shift,
   useClick,
   useDismiss,
   useFloating,
@@ -98,7 +100,10 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
 const Note = () => {
   return <></>;
 };
-
+type NoteItem = {
+  id: number;
+  color: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
+};
 const ListNote = () => {
   const colors = [
     "amber",
@@ -109,20 +114,36 @@ const ListNote = () => {
     "zinc",
     "neutral",
   ];
-  const randomColors = () => {
+  const randomColors = ():
+    | "amber"
+    | "green"
+    | "pink"
+    | "violet"
+    | "cyan"
+    | "zinc"
+    | "neutral" => {
     const index = Math.floor(Math.random() * colors.length);
-    return colors[index];
+    if (colors[index] === "amber") return "amber";
+    else if (colors[index] === "green") return "green";
+    else if (colors[index] === "pink") return "pink";
+    else if (colors[index] === "violet") return "violet";
+    else if (colors[index] === "cyan") return "cyan";
+    else if (colors[index] === "zinc") return "zinc";
+    else return "neutral";
   };
-  const notes = Array.from({ length: 16 }, (_, k) => ({
-    id: k,
-    color: randomColors(),
-  }));
+  const notes = Array.from(
+    { length: 16 },
+    (_, k): NoteItem => ({
+      id: k,
+      color: randomColors(),
+    })
+  );
   const trailSprings = useTrail(notes.length, {
     from: { transform: "translateX(-100px)" },
-    to: { transform: "translateX(100px)" },
+    to: { transform: "translateX(0px)" },
   });
   return (
-    <div className="p-4 border w-80">
+    <div className="p-4 border w-80 h-[600px] overflow-auto">
       <div className="flex justify-between">
         <button>
           <GrAdd />
@@ -139,18 +160,19 @@ const ListNote = () => {
         />
         <LiaSearchSolid className="absolute right-2 top-2" />
       </div>
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-2">
         {trailSprings.map((spring, index) => (
           <animated.div
             key={index}
             style={{
               ...spring,
-              height: "100px",
-              width: "80px",
-              marginRight: "10px",
             }}
           >
-            {index} - {notes[index].color}
+            {/* {index} - {notes[index].color} */}
+            <StackNote
+              variant={notes[index].color}
+              className="w-full h-[150px]"
+            />
           </animated.div>
         ))}
       </div>
@@ -185,7 +207,7 @@ interface StackNoteProps
     VariantProps<typeof stackNoteVariants> {
   variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
 }
-const StackNote = ({ variant }: StackNoteProps) => {
+const StackNote = ({ className, variant }: StackNoteProps) => {
   const [count, setCount] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
@@ -193,7 +215,7 @@ const StackNote = ({ variant }: StackNoteProps) => {
   const editor = useNoteEditor({ content });
   return (
     <>
-      {isFolded && (
+      {/* {isFolded && (
         <ResizableNote
           className="absolute z-20"
           onClose={() => setIsFolded(false)}
@@ -201,16 +223,9 @@ const StackNote = ({ variant }: StackNoteProps) => {
           setContent={setContent}
           variant={variant}
         />
-      )}
+      )} */}
       <div
-        className={cn(
-          "flex flex-col  w-[220px] h-[200px] group-hover/note:bg-amber-950/10 group-hover/note:shadow-md",
-          isFolded === true ? "folded after:folded-amber-after" : "",
-          stackNoteVariants({
-            background: variant,
-            borderBackground: variant,
-          })
-        )}
+        className="group/note w-fit h-fit drop-shadow-md "
         onMouseEnter={() => {
           setCount((o) => {
             if (o > 20) o = 0;
@@ -228,11 +243,21 @@ const StackNote = ({ variant }: StackNoteProps) => {
       >
         <div
           className={cn(
-            "flex justify-between border-t-1 group-hover/note:border-amber-950/5",
-            stackNoteVariants({ borderBackground: variant })
+            "flex flex-col h-[150px] group-hover/note:bg-amber-950/10 ",
+            // isFolded === true ? "folded after:folded-amber-after" : "",
+            stackNoteVariants({
+              background: variant,
+              borderBackground: variant,
+            }),
+            className
           )}
         >
-          <div className="flex justify-between border-t-4 border-amber-200 group-hover/note:border-amber-950/5">
+          <div
+            className={cn(
+              "flex justify-between border-t-1 group-hover/note:border-amber-950/5",
+              stackNoteVariants({ borderBackground: variant })
+            )}
+          >
             <div></div>
             <div className="pr-2 pt-2 flex items-center">
               <StackNoteMenu
@@ -251,10 +276,16 @@ const StackNote = ({ variant }: StackNoteProps) => {
               </span>
             </div>
           </div>
-          <div className="fixed top-8 bottom-8 left-1 right-1">
+          <div className={cn(`fixed top-8 bottom-8 left-1 right-1`)}>
             <NoteEditor editor={editor} footer={0} />
           </div>
         </div>
+        <div
+          className={cn(
+            `w-full h-4 bg-amber-100 group-hover/note:bg-amber-950/10 mt-0 pt-0`,
+            isFolded === true ? "folded after:folded-amber-after" : ""
+          )}
+        ></div>
       </div>
     </>
   );
@@ -1081,7 +1112,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Draft1: Story = {
   render: ({ variant }) => {
-    return <StackNote variant={variant} />;
+    return <StackNote variant={variant} className="w-[220px]" />;
   },
 };
 

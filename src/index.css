@@ -7,7 +7,7 @@
     --cs: 15px;
   }
   .folded {
-    position: relative;
+    position: absolute;
     clip-path: polygon(
       100% 0,
       100% calc(100% - var(--cs)),
@@ -15,6 +15,7 @@
       0 100%,
       0 0
     );
+    z-index: 20;
   }
   .folded-amber-after {
     content: "";
