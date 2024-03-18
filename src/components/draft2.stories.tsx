@@ -97,12 +97,18 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
   return editor;
 };
 
+interface NoteModel {
+  id: number;
+  content: string;
+}
+
 const Note = () => {
   return <></>;
 };
 type NoteItem = {
   id: number;
   color: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
+  model: NoteModel;
 };
 const ListNote = () => {
   const colors = [
@@ -134,33 +140,67 @@ const ListNote = () => {
   const notes = Array.from(
     { length: 16 },
     (_, k): NoteItem => ({
-      id: k,
+      id: k + 1,
       color: randomColors(),
+      model: {
+        id: k + 1,
+        content: "This is note " + (k + 1),
+      },
     })
   );
-  const trailSprings = useTrail(notes.length, {
+  const [displayNotes, setDisplayNotes] = useState<NoteItem[]>(notes);
+  const filterNote = (search: string) => {
+    return notes.filter((e) => {
+      return e.model.content === search;
+    });
+  };
+  const trailSprings = useTrail(displayNotes.length, {
     from: { transform: "translateX(-100px)" },
     to: { transform: "translateX(0px)" },
   });
+  const newNoteIndex = () => {
+    const ids = notes.map((m) => m.id);
+    const maxId = Math.max(...ids);
+    return maxId + 1;
+  };
   return (
     <div className="p-4 border w-80 h-[600px] overflow-auto">
       <div className="flex justify-between">
-        <button>
+        <button
+          onClick={() => {
+            const newNote: NoteModel = {
+              id: newNoteIndex(),
+              content: "This is note " + newNoteIndex(),
+            };
+            setDisplayNotes(() => [
+              ...notes,
+              { id: newNoteIndex(), color: randomColors(), model: newNote },
+            ]);
+          }}
+        >
           <GrAdd />
         </button>
-        <button>
+        {/* <button>
           <GrClose />
-        </button>
+        </button> */}
+        <div></div>
       </div>
       <div className="font-bold text-xl my-2">Sticky Notes</div>
       <div className="relative mb-2">
         <input
           type="text"
           className="bg-gray-200 w-full outline-none ps-2 py-1 pe-8"
+          onKeyUp={(e) => {
+            if (e.key === "Enter") {
+              let filterN = filterNote(e.currentTarget.value);
+              filterN = filterN.length === 0 ? notes : filterN;
+              setDisplayNotes(() => filterN);
+            }
+          }}
         />
         <LiaSearchSolid className="absolute right-2 top-2" />
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-6 mb-4">
         {trailSprings.map((spring, index) => (
           <animated.div
             key={index}
@@ -170,8 +210,9 @@ const ListNote = () => {
           >
             {/* {index} - {notes[index].color} */}
             <StackNote
-              variant={notes[index].color}
+              variant={displayNotes[index].color}
               className="w-full h-[150px]"
+              content={displayNotes[index].model.content}
             />
           </animated.div>
         ))}
@@ -206,12 +247,13 @@ interface StackNoteProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof stackNoteVariants> {
   variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
+  content?: string;
 }
-const StackNote = ({ className, variant }: StackNoteProps) => {
+const StackNote = ({ content = "", className, variant }: StackNoteProps) => {
   const [count, setCount] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
-  const [content, setContent] = useState("");
+  // const [content, setContent] = useState("");
   const editor = useNoteEditor({ content });
   return (
     <>
@@ -225,7 +267,7 @@ const StackNote = ({ className, variant }: StackNoteProps) => {
         />
       )} */}
       <div
-        className="group/note w-fit h-fit drop-shadow-md "
+        className={cn("group/note w-fit h-fit ", className)}
         onMouseEnter={() => {
           setCount((o) => {
             if (o > 20) o = 0;
@@ -248,8 +290,7 @@ const StackNote = ({ className, variant }: StackNoteProps) => {
             stackNoteVariants({
               background: variant,
               borderBackground: variant,
-            }),
-            className
+            })
           )}
         >
           <div
@@ -282,8 +323,9 @@ const StackNote = ({ className, variant }: StackNoteProps) => {
         </div>
         <div
           className={cn(
-            `w-full h-4 bg-amber-100 group-hover/note:bg-amber-950/10 mt-0 pt-0`,
-            isFolded === true ? "folded after:folded-amber-after" : ""
+            `w-full h-4 group-hover/note:bg-amber-950/10 mt-0 pt-0`,
+            isFolded === true ? "folded after:folded-amber-after" : "",
+            stackNoteVariants({ background: variant })
           )}
         ></div>
       </div>
