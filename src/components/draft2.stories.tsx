@@ -110,21 +110,68 @@ const ListNote = () => {
   const [search, setSearch] = useState("");
   const dispatch = useNotesDispatch();
   const notes = useNotes();
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
+    let container = containerRef.current;
+    let navbar = searchRef.current;
+    let header = headerRef.current;
+    let oldTop = "";
+    if (navbar !== null) {
+      oldTop = navbar.style.top;
+      console.log(oldTop);
+    }
+    let sticky = 0;
+    const onScroll = () => {
+      if (navbar !== null && header !== null) {
+        sticky = header.offsetTop + header.getBoundingClientRect().height;
+        if (container !== null) {
+          if (container.scrollTop >= sticky) {
+            navbar.style.top = container.offsetTop + "px";
+            navbar.style.zIndex = "999";
+            navbar.style.width = header.getBoundingClientRect().width + "px";
+            navbar.classList.remove("relative");
+            navbar.classList.remove("w-full");
+            navbar.classList.add("fixed");
+          } else {
+            navbar.classList.add("relative");
+            navbar.classList.remove("fixed");
+            navbar.classList.add("w-full");
+            navbar.style.top = oldTop;
+            navbar.style.width = "";
+          }
+        }
+      }
+    };
+    container?.addEventListener("scroll", onScroll);
+    return () => container?.removeEventListener("scroll", onScroll);
+  }, [searchRef, containerRef, headerRef]);
+  useEffect(() => {
+    console.log("*", search);
     if (search.length > 0) {
       let filterN = filterNote(search);
-      filterN = filterN.length === 0 ? [...notes] : filterN;
+      filterN = filterN.length === 0 ? [] : filterN;
       setDisplayNotes(() => filterN);
     } else {
+      if (inputRef.current !== null && inputRef.current !== undefined) {
+        inputRef.current.value = "";
+      }
       setDisplayNotes(() => [...notes]);
     }
   }, [notes]);
   useEffect(() => {
+    console.log("**", search);
     if (search.length > 0) {
       let filterN = filterNote(search);
-      filterN = filterN.length === 0 ? [...notes] : filterN;
+      filterN = filterN.length === 0 ? [] : filterN;
       setDisplayNotes(() => filterN);
     } else {
+      if (inputRef.current !== null && inputRef.current !== undefined) {
+        inputRef.current.value = "";
+      }
       setDisplayNotes(() => [...notes]);
     }
   }, [search]);
@@ -147,7 +194,10 @@ const ListNote = () => {
     return maxId + 1;
   };
   return (
-    <div className="p-4 border w-80 h-[600px] overflow-auto">
+    <div
+      className="flex flex-col p-4 border w-80 h-[600px] overflow-auto"
+      ref={containerRef}
+    >
       <div className="flex justify-between">
         <button
           onClick={() => {
@@ -170,8 +220,10 @@ const ListNote = () => {
         </button> */}
         <div></div>
       </div>
-      <div className="font-bold text-xl my-2">Sticky Notes</div>
-      <div className="relative mb-2 w-full">
+      <div className="font-bold text-xl my-2" ref={headerRef}>
+        Sticky Notes
+      </div>
+      <div className="relative mb-2 w-full bg-white" ref={searchRef}>
         <input
           type="text"
           className="bg-gray-200 w-full outline-none ps-2 py-1 pe-8"
@@ -179,24 +231,43 @@ const ListNote = () => {
             debounce({ value: e.currentTarget.value });
           }}
           defaultValue={search}
+          ref={inputRef}
         />
-        <LiaSearchSolid className="absolute right-2 top-2" />
-      </div>
-      <div className=" flex flex-col gap-6 mb-4 ">
-        {trailSprings.map((spring, index) => (
-          <animated.div
-            key={index}
-            style={{
-              ...spring,
+        {search.length > 0 ? (
+          <button
+            className="absolute right-8 top-2"
+            onClick={() => {
+              debounce({ value: "" });
             }}
           >
-            <StackNote
-              variant={displayNotes[displayNotes.length - (index + 1)].color}
-              className="w-full h-[150px]"
-              note={displayNotes[displayNotes.length - (index + 1)]}
-            />
-          </animated.div>
-        ))}
+            <GrClose />
+          </button>
+        ) : null}
+        <LiaSearchSolid className="absolute right-2 top-2" />
+      </div>
+      <div className="grow">
+        <div className=" flex flex-col gap-6 h-96 mb-4 ">
+          {trailSprings.length > 0 ? (
+            trailSprings.map((spring, index) => (
+              <animated.div
+                key={index}
+                style={{
+                  ...spring,
+                }}
+              >
+                <StackNote
+                  variant={
+                    displayNotes[displayNotes.length - (index + 1)].color
+                  }
+                  className="w-full h-[150px]"
+                  note={displayNotes[displayNotes.length - (index + 1)]}
+                />
+              </animated.div>
+            ))
+          ) : (
+            <div className="font-bold text-xl">No notes found!</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1382,6 +1453,20 @@ const initialNotes: NoteModel[] = [
     createdDate: new Date().toDateString(),
     open: false,
   },
+  {
+    id: 4,
+    color: randomColors(),
+    content: "This is note 4",
+    createdDate: new Date().toDateString(),
+    open: false,
+  },
+  {
+    id: 5,
+    color: randomColors(),
+    content: "This is note 5",
+    createdDate: new Date().toDateString(),
+    open: false,
+  },
 ];
 const NotesContext = createContext<NoteModel[]>([]);
 const NotesDispatchContext = createContext<React.Dispatch<NoteAction> | null>(
@@ -1445,83 +1530,6 @@ export const Draft3: Story = {
           <ListResizableNotes />
         </div>
       </NotesProvider>
-    );
-  },
-};
-
-export const Draft4: Story = {
-  render: () => {
-    const searchRef = useRef<HTMLDivElement>(null);
-    const headerRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-      let container = containerRef.current;
-      let navbar = searchRef.current;
-      let header = headerRef.current;
-      let oldTop = "";
-      if (navbar !== null) {
-        oldTop = navbar.style.top;
-        console.log(oldTop);
-      }
-      let sticky = 0;
-      const onScroll = () => {
-        if (navbar !== null && header !== null) {
-          sticky = header.offsetTop + header.getBoundingClientRect().height;
-          if (container !== null) {
-            if (container.scrollTop >= sticky) {
-              navbar.style.top = header.offsetTop - 18 + "px";
-              navbar.classList.remove("relative");
-              navbar.classList.add("fixed");
-            } else {
-              navbar.classList.add("relative");
-              navbar.classList.remove("fixed");
-              navbar.style.top = oldTop;
-            }
-          }
-        }
-      };
-      container?.addEventListener("scroll", onScroll);
-      return () => container?.removeEventListener("scroll", onScroll);
-    }, [searchRef, containerRef]);
-    return (
-      <div
-        ref={containerRef}
-        className="flex flex-col p-2 w-52 h-96 border overflow-auto"
-      >
-        <div className="py-2 font-bold text-xl" ref={headerRef}>
-          Sticky Notes
-        </div>
-        <div
-          className="relative flex items-center my-2 bg-white"
-          ref={searchRef}
-        >
-          <input type="text" className="w-full bg-zinc-300" />
-          <LiaSearchSolid className="absolute right-2" />
-        </div>
-        <div className="grow p-2">
-          <div className="flex flex-col gap-2 h-96">
-            {/* <div className="w-full h-40 bg-amber-200 border-amber-300">1</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">2</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">3</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">4</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">5</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">6</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">7</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">8</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">9</div>
-            <div className="w-full h-40 bg-amber-200 border-amber-300">10</div> */}
-            {initialNotes.map((note) => (
-              <div className="relative" key={note.id}>
-                <StackNote
-                  note={note}
-                  variant={note.color}
-                  className="w-full"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     );
   },
 };
