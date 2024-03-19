@@ -1,10 +1,8 @@
-import { canvasPreview, cn, dataUrlToFile } from "@/lib/util";
+import { canvasPreview, cn, dataUrlToFile, useDebounce } from "@/lib/util";
 import {
   FloatingFocusManager,
   autoPlacement,
   autoUpdate,
-  flip,
-  shift,
   useClick,
   useDismiss,
   useFloating,
@@ -20,8 +18,11 @@ import React, {
   CSSProperties,
   HTMLAttributes,
   PropsWithChildren,
+  createContext,
   forwardRef,
+  useContext,
   useEffect,
+  useReducer,
   useRef,
   useState,
 } from "react";
@@ -44,10 +45,11 @@ import { useDrag } from "@use-gesture/react";
 import { Underline } from "@tiptap/extension-underline";
 import { ListItem } from "@tiptap/extension-list-item";
 import { TextStyle, TextStyleOptions } from "@tiptap/extension-text-style";
-import { Dialog, Popover } from "@headlessui/react";
+import { Dialog } from "@headlessui/react";
 import { Image as TipTapImage } from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { LiaSearchSolid } from "react-icons/lia";
+import { stripHtml } from "string-strip-html";
 
 interface useNoteEditorProps {
   content: string;
@@ -78,6 +80,7 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
       placeholder: "Take a note...",
       emptyEditorClass:
         "cursor-text before:content-[attr(data-placeholder)] before:absolute before:top-2 before:left-2 before:text-mauve-11 before:opacity-50 before-pointer-events-none",
+      showOnlyWhenEditable: false,
     }),
   ];
 
@@ -97,61 +100,41 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
   return editor;
 };
 
-interface NoteModel {
-  id: number;
-  content: string;
-}
-
 const Note = () => {
   return <></>;
 };
-type NoteItem = {
-  id: number;
-  color: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
-  model: NoteModel;
-};
+interface ListNoteProps {
+  // notes: NoteModel[];
+}
 const ListNote = () => {
-  const colors = [
-    "amber",
-    "green",
-    "pink",
-    "violet",
-    "cyan",
-    "zinc",
-    "neutral",
-  ];
-  const randomColors = ():
-    | "amber"
-    | "green"
-    | "pink"
-    | "violet"
-    | "cyan"
-    | "zinc"
-    | "neutral" => {
-    const index = Math.floor(Math.random() * colors.length);
-    if (colors[index] === "amber") return "amber";
-    else if (colors[index] === "green") return "green";
-    else if (colors[index] === "pink") return "pink";
-    else if (colors[index] === "violet") return "violet";
-    else if (colors[index] === "cyan") return "cyan";
-    else if (colors[index] === "zinc") return "zinc";
-    else return "neutral";
-  };
-  const notes = Array.from(
-    { length: 16 },
-    (_, k): NoteItem => ({
-      id: k + 1,
-      color: randomColors(),
-      model: {
-        id: k + 1,
-        content: "This is note " + (k + 1),
-      },
-    })
-  );
-  const [displayNotes, setDisplayNotes] = useState<NoteItem[]>(notes);
+  const [search, setSearch] = useState("");
+  const dispatch = useNotesDispatch();
+  const notes = useNotes();
+  useEffect(() => {
+    if (search.length > 0) {
+      let filterN = filterNote(search);
+      filterN = filterN.length === 0 ? [...notes] : filterN;
+      setDisplayNotes(() => filterN);
+    } else {
+      setDisplayNotes(() => [...notes]);
+    }
+  }, [notes]);
+  useEffect(() => {
+    if (search.length > 0) {
+      let filterN = filterNote(search);
+      filterN = filterN.length === 0 ? [...notes] : filterN;
+      setDisplayNotes(() => filterN);
+    } else {
+      setDisplayNotes(() => [...notes]);
+    }
+  }, [search]);
+  const debounce = useDebounce(({ value }) => {
+    setSearch(() => value);
+  }, 500);
+  const [displayNotes, setDisplayNotes] = useState<NoteModel[]>(notes);
   const filterNote = (search: string) => {
-    return notes.filter((e) => {
-      return e.model.content === search;
+    return [...notes].filter((e) => {
+      return stripHtml(e.content).result === search;
     });
   };
   const trailSprings = useTrail(displayNotes.length, {
@@ -170,12 +153,14 @@ const ListNote = () => {
           onClick={() => {
             const newNote: NoteModel = {
               id: newNoteIndex(),
-              content: "This is note " + newNoteIndex(),
+              content: "",
+              color: randomColors(),
+              createdDate: new Date().toDateString(),
+              open: false,
             };
-            setDisplayNotes(() => [
-              ...notes,
-              { id: newNoteIndex(), color: randomColors(), model: newNote },
-            ]);
+            if (dispatch !== null) {
+              dispatch({ type: NoteActionType.ADD, payload: newNote });
+            }
           }}
         >
           <GrAdd />
@@ -186,21 +171,18 @@ const ListNote = () => {
         <div></div>
       </div>
       <div className="font-bold text-xl my-2">Sticky Notes</div>
-      <div className="relative mb-2">
+      <div className="relative mb-2 w-full">
         <input
           type="text"
           className="bg-gray-200 w-full outline-none ps-2 py-1 pe-8"
           onKeyUp={(e) => {
-            if (e.key === "Enter") {
-              let filterN = filterNote(e.currentTarget.value);
-              filterN = filterN.length === 0 ? notes : filterN;
-              setDisplayNotes(() => filterN);
-            }
+            debounce({ value: e.currentTarget.value });
           }}
+          defaultValue={search}
         />
         <LiaSearchSolid className="absolute right-2 top-2" />
       </div>
-      <div className="flex flex-col gap-6 mb-4">
+      <div className=" flex flex-col gap-6 mb-4 ">
         {trailSprings.map((spring, index) => (
           <animated.div
             key={index}
@@ -208,16 +190,47 @@ const ListNote = () => {
               ...spring,
             }}
           >
-            {/* {index} - {notes[index].color} */}
             <StackNote
-              variant={displayNotes[index].color}
+              variant={displayNotes[displayNotes.length - (index + 1)].color}
               className="w-full h-[150px]"
-              content={displayNotes[index].model.content}
+              note={displayNotes[displayNotes.length - (index + 1)]}
             />
           </animated.div>
         ))}
       </div>
     </div>
+  );
+};
+
+const ListResizableNotes = () => {
+  const notes = useNotes();
+  const dispatch = useNotesDispatch();
+  const newNoteIndex = () => {
+    const ids = notes.map((m) => m.id);
+    const maxId = Math.max(...ids);
+    return maxId + 1;
+  };
+  return notes.map(
+    (note) =>
+      note.open && (
+        <ResizableNote
+          key={note.id}
+          note={note}
+          variant={note.color}
+          onAddNote={() => {
+            if (dispatch !== null) {
+              const newNote: NoteModel = {
+                id: newNoteIndex(),
+                content: "",
+                color: randomColors(),
+                createdDate: new Date().toDateString(),
+                open: false,
+              };
+              dispatch({ type: NoteActionType.ADD, payload: newNote });
+            }
+          }}
+        />
+      )
   );
 };
 
@@ -247,89 +260,100 @@ interface StackNoteProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof stackNoteVariants> {
   variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
-  content?: string;
+  // content?: string;
+  note: NoteModel;
 }
-const StackNote = ({ content = "", className, variant }: StackNoteProps) => {
+const StackNote = ({ note, className, variant }: StackNoteProps) => {
+  useEffect(() => {
+    setIsFolded(() => note.open);
+    editor?.commands.setContent(note.content);
+  }, [note]);
   const [count, setCount] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
-  const [isFolded, setIsFolded] = useState(false);
-  // const [content, setContent] = useState("");
-  const editor = useNoteEditor({ content });
+  const [isFolded, setIsFolded] = useState(note.open);
+  const editor = useNoteEditor({ content: note.content });
+  const dispatch = useNotesDispatch();
   return (
-    <>
-      {/* {isFolded && (
-        <ResizableNote
-          className="absolute z-20"
-          onClose={() => setIsFolded(false)}
-          content={content}
-          setContent={setContent}
-          variant={variant}
-        />
-      )} */}
+    <div
+      className={cn("group/note w-fit h-fit ", className)}
+      onMouseEnter={() => {
+        setCount((o) => {
+          if (o > 20) o = 0;
+          return o + 1;
+        });
+        setOpenMenu(() => false);
+      }}
+      onMouseLeave={() => {
+        setCount((o) => {
+          if (o > 20) o = 0;
+          return o + 1;
+        });
+        setOpenMenu(() => false);
+      }}
+    >
       <div
-        className={cn("group/note w-fit h-fit ", className)}
-        onMouseEnter={() => {
-          setCount((o) => {
-            if (o > 20) o = 0;
-            return o + 1;
-          });
-          setOpenMenu(() => false);
-        }}
-        onMouseLeave={() => {
-          setCount((o) => {
-            if (o > 20) o = 0;
-            return o + 1;
-          });
-          setOpenMenu(() => false);
-        }}
+        className={cn(
+          "flex flex-col h-[150px] group-hover/note:bg-amber-950/10 ",
+          // isFolded === true ? "folded after:folded-amber-after" : "",
+          stackNoteVariants({
+            background: variant,
+            borderBackground: variant,
+          })
+        )}
       >
         <div
           className={cn(
-            "flex flex-col h-[150px] group-hover/note:bg-amber-950/10 ",
-            // isFolded === true ? "folded after:folded-amber-after" : "",
-            stackNoteVariants({
-              background: variant,
-              borderBackground: variant,
-            })
+            "flex justify-between border-t-1 group-hover/note:border-amber-950/5",
+            stackNoteVariants({ borderBackground: variant })
           )}
         >
-          <div
-            className={cn(
-              "flex justify-between border-t-1 group-hover/note:border-amber-950/5",
-              stackNoteVariants({ borderBackground: variant })
-            )}
-          >
-            <div></div>
-            <div className="pr-2 pt-2 flex items-center">
-              <StackNoteMenu
-                open={openMenu}
-                key={count}
-                onOpen={() => {
-                  setIsFolded(() => true);
-                }}
-                onClose={() => {
-                  setIsFolded(() => false);
-                }}
-                hasOpened={isFolded}
-              />
-              <span className="group-hover/note:hidden text-slate-600 text-xs">
-                25/05/65
-              </span>
-            </div>
-          </div>
-          <div className={cn(`fixed top-8 bottom-8 left-1 right-1`)}>
-            <NoteEditor editor={editor} footer={0} />
+          <div></div>
+          <div className="pr-2 pt-2 flex items-center">
+            <StackNoteMenu
+              open={openMenu}
+              key={count}
+              onOpen={() => {
+                setIsFolded(() => true);
+                if (dispatch !== null) {
+                  dispatch({
+                    type: NoteActionType.OPEN,
+                    payload: { ...note, open: true },
+                  });
+                }
+              }}
+              onClose={() => {
+                setIsFolded(() => false);
+                if (dispatch !== null) {
+                  dispatch({
+                    type: NoteActionType.OPEN,
+                    payload: { ...note, open: false },
+                  });
+                }
+              }}
+              onDelete={() => {
+                if (dispatch !== null) {
+                  dispatch({ type: NoteActionType.DELETE, payload: note });
+                }
+              }}
+              hasOpened={isFolded}
+            />
+            <span className="group-hover/note:hidden text-slate-600 text-xs">
+              {note.createdDate}
+            </span>
           </div>
         </div>
-        <div
-          className={cn(
-            `w-full h-4 group-hover/note:bg-amber-950/10 mt-0 pt-0`,
-            isFolded === true ? "folded after:folded-amber-after" : "",
-            stackNoteVariants({ background: variant })
-          )}
-        ></div>
+        <div className={cn(`fixed top-8 bottom-8 left-1 right-1`)}>
+          <NoteEditor editor={editor} footer={0} />
+        </div>
       </div>
-    </>
+      <div
+        className={cn(
+          `w-full h-4 group-hover/note:bg-amber-950/10 mt-0 pt-0`,
+          isFolded === true ? "folded after:folded-after" : "",
+          stackNoteVariants({ background: variant })
+        )}
+      ></div>
+    </div>
   );
 };
 interface UseResizableProps {
@@ -443,21 +467,27 @@ interface ResizableNoteProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof resizableNoteVariants> {
   ref?: React.Ref<HTMLDivElement>;
-  onClose?: () => void;
-  content?: string;
-  setContent?: React.Dispatch<React.SetStateAction<string>>;
-  variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
+  // onClose?: () => void;
+  // content?: string;
+  // setContent?: React.Dispatch<React.SetStateAction<string>>;
+  variant?: NoteType;
+  note: NoteModel;
+  onAddNote?: () => void;
 }
 const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
-  (
-    { variant, className, onClose, content = "", setContent, ...props },
-    ref
-  ) => {
+  ({ onAddNote, variant, className, note, ...props }, ref) => {
     const dragEl = useRef<HTMLDivElement | null>(null);
-    const editor = useNoteEditor({ content });
+    const editor = useNoteEditor({ content: note.content });
     const [count, setCount] = useState(0);
+    const dispatch = useNotesDispatch();
     const onUpdate = (e: any) => {
-      setContent && setContent(() => e.editor.getHTML());
+      // setContent && setContent(() => e.editor.getHTML());
+      if (dispatch !== null) {
+        if (note.content !== e.editor.getHTML()) {
+          note.content = e.editor.getHTML();
+          dispatch({ type: NoteActionType.UPDATE, payload: note });
+        }
+      }
     };
     useEffect(() => {
       editor?.on("update", onUpdate);
@@ -513,7 +543,10 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
       <animated.div
         style={{ ...springs, touchAction: "none" }}
         {...(!open ? bind() : {})}
-        className={cn("group/note w-fit h-fit drop-shadow-md ", className)}
+        className={cn(
+          "absolute group/note w-fit h-fit drop-shadow-md ",
+          className
+        )}
       >
         <div
           // className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
@@ -535,7 +568,12 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
             )}
           >
             <div>
-              <button className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2">
+              <button
+                className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
+                onClick={() => {
+                  onAddNote && onAddNote();
+                }}
+              >
                 <GrAdd className="invisible group-focus-within/note:visible hover:visible" />
               </button>
             </div>
@@ -550,13 +588,29 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </button>
               <button
                 className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
-                onClick={() => onClose && onClose()}
+                onClick={() => {
+                  if (dispatch !== null) {
+                    dispatch({
+                      type: NoteActionType.OPEN,
+                      payload: { ...note, open: false },
+                    });
+                  }
+                }}
               >
                 <GrClose className="invisible group-focus-within/note:visible hover:visible" />
               </button>
             </div>
           </div>
-          <NoteResizableMenu showMenu={showMenu} setShowMenu={setShowMenu} />
+          <NoteResizableMenu
+            showMenu={showMenu}
+            setShowMenu={setShowMenu}
+            note={note}
+            onDeleteNote={() => {
+              if (dispatch !== null) {
+                dispatch({ type: NoteActionType.DELETE, payload: note });
+              }
+            }}
+          />
           <div
             className="fixed z-0 top-8 bottom-8 overflow-auto no-scrollbar"
             style={{
@@ -777,7 +831,6 @@ const NoteEditor = ({
         attributes,
       },
     });
-    // editor?.commands.focus();
   }, [width, height, editor, editable, style]);
   return (
     <EditorContent
@@ -1052,11 +1105,16 @@ const ImagePreviewDialog = ({
 interface NoteResizableMenuProps {
   showMenu: boolean;
   setShowMenu: React.Dispatch<React.SetStateAction<boolean>>;
+  note: NoteModel;
+  onDeleteNote: () => void;
 }
 const NoteResizableMenu = ({
+  note,
   showMenu,
   setShowMenu,
+  onDeleteNote,
 }: NoteResizableMenuProps) => {
+  const dispatch = useNotesDispatch();
   const [mouseLeave, setMouseLeave] = useState(false);
   useEffect(() => {
     const clickOutSide = () => {
@@ -1079,15 +1137,97 @@ const NoteResizableMenu = ({
       className={`fixed z-20 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
-        <ColorPaletteButton background={"amber"} />
-        <ColorPaletteButton background={"green"} />
-        <ColorPaletteButton background={"pink"} />
-        <ColorPaletteButton background={"violet"} />
-        <ColorPaletteButton background={"cyan"} />
-        <ColorPaletteButton background={"zinc"} />
-        <ColorPaletteButton background={"neutral"} />
+        <ColorPaletteButton
+          background={"amber"}
+          isCheck={"amber" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"green"}
+          isCheck={"green" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"pink"}
+          isCheck={"pink" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"violet"}
+          isCheck={"violet" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"cyan"}
+          isCheck={"cyan" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"zinc"}
+          isCheck={"zinc" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
+        <ColorPaletteButton
+          background={"neutral"}
+          isCheck={"neutral" === note.color}
+          onUpdateColor={(color) => {
+            if (dispatch !== null) {
+              dispatch({
+                type: NoteActionType.UPDATE,
+                payload: { ...note, color },
+              });
+            }
+          }}
+        />
       </div>
-      <button className="w-full bg-slate-100 text-red-500 p-2 hover:bg-zinc-200">
+      <button
+        className="w-full bg-slate-100 text-red-500 p-2 hover:bg-zinc-200"
+        onClick={() => {
+          onDeleteNote();
+        }}
+      >
         <div className="flex gap-2 justify-start items-center">
           <BsTrash />
           <div className="ml-2">Delete note</div>
@@ -1119,20 +1259,146 @@ const colorPaletteButtonVariants = cva(
 
 interface ColorPaletteButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof colorPaletteButtonVariants> {}
+    VariantProps<typeof colorPaletteButtonVariants> {
+  isCheck: boolean;
+  onUpdateColor: (color: NoteType) => void;
+}
 
 const ColorPaletteButton = ({
+  onUpdateColor,
+  isCheck,
   className,
   background,
   ...props
 }: ColorPaletteButtonProps) => {
   return (
     <button
+      onClick={() => {
+        if (
+          background === "amber" ||
+          background === "cyan" ||
+          background === "green" ||
+          background === "neutral" ||
+          background === "pink" ||
+          background === "violet" ||
+          background === "zinc"
+        ) {
+          onUpdateColor(background);
+        }
+      }}
       className={cn(colorPaletteButtonVariants({ className, background }))}
       {...props}
     >
-      <IoCheckmark />
+      {isCheck && <IoCheckmark />}
     </button>
+  );
+};
+
+// Context
+enum NoteActionType {
+  ADD = "ADD",
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
+  OPEN = "OPEN",
+}
+
+type NoteType =
+  | "amber"
+  | "green"
+  | "pink"
+  | "violet"
+  | "cyan"
+  | "zinc"
+  | "neutral";
+interface NoteModel {
+  id: number;
+  content: string;
+  createdDate: string;
+  color: NoteType;
+  open: boolean;
+}
+
+interface NoteAction {
+  type: NoteActionType;
+  payload: NoteModel;
+}
+const notesReducer = (notes: NoteModel[], action: NoteAction) => {
+  switch (action.type) {
+    case NoteActionType.ADD:
+      return [...notes, action.payload];
+    case NoteActionType.UPDATE:
+      return notes.map((note) => {
+        if (note.id === action.payload.id) {
+          return action.payload;
+        } else {
+          return note;
+        }
+      });
+    case NoteActionType.DELETE:
+      return notes.filter((t) => t.id !== action.payload.id);
+    case NoteActionType.OPEN:
+      return notes.map((note) => {
+        if (note.id === action.payload.id) {
+          return action.payload;
+        } else {
+          return note;
+        }
+      });
+    default:
+      throw Error("Unknown action: " + action.type);
+  }
+};
+const colors = ["amber", "green", "pink", "violet", "cyan", "zinc", "neutral"];
+const randomColors = (): NoteType => {
+  const index = Math.floor(Math.random() * colors.length);
+  if (colors[index] === "amber") return "amber";
+  else if (colors[index] === "green") return "green";
+  else if (colors[index] === "pink") return "pink";
+  else if (colors[index] === "violet") return "violet";
+  else if (colors[index] === "cyan") return "cyan";
+  else if (colors[index] === "zinc") return "zinc";
+  else return "neutral";
+};
+
+const initialNotes: NoteModel[] = [
+  {
+    id: 1,
+    color: randomColors(),
+    content: "This is note 1",
+    createdDate: new Date().toDateString(),
+    open: false,
+  },
+  {
+    id: 2,
+    color: randomColors(),
+    content: "This is note 2",
+    createdDate: new Date().toDateString(),
+    open: false,
+  },
+  {
+    id: 3,
+    color: randomColors(),
+    content: "This is note 3",
+    createdDate: new Date().toDateString(),
+    open: false,
+  },
+];
+const NotesContext = createContext<NoteModel[]>([]);
+const NotesDispatchContext = createContext<React.Dispatch<NoteAction> | null>(
+  null
+);
+
+const useNotes = () => useContext(NotesContext);
+const useNotesDispatch = () => useContext(NotesDispatchContext);
+
+const NotesProvider = ({ children }: PropsWithChildren) => {
+  const [notes, dispatch] = useReducer(notesReducer, initialNotes);
+  return (
+    <NotesContext.Provider value={notes}>
+      <NotesDispatchContext.Provider value={dispatch}>
+        {children}
+      </NotesDispatchContext.Provider>
+    </NotesContext.Provider>
   );
 };
 
@@ -1154,18 +1420,108 @@ type Story = StoryObj<typeof meta>;
 
 export const Draft1: Story = {
   render: ({ variant }) => {
-    return <StackNote variant={variant} className="w-[220px]" />;
+    return (
+      <StackNote
+        note={initialNotes[0]}
+        variant={variant}
+        className="w-[220px]"
+      />
+    );
   },
 };
 
 export const Draft2: Story = {
   render: ({ variant }) => {
-    return <ResizableNote variant={variant} />;
+    return <ResizableNote variant={variant} note={initialNotes[0]} />;
   },
 };
 
 export const Draft3: Story = {
   render: () => {
-    return <ListNote />;
+    return (
+      <NotesProvider>
+        <div className="flex">
+          <ListNote />
+          <ListResizableNotes />
+        </div>
+      </NotesProvider>
+    );
+  },
+};
+
+export const Draft4: Story = {
+  render: () => {
+    const searchRef = useRef<HTMLDivElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      let container = containerRef.current;
+      let navbar = searchRef.current;
+      let header = headerRef.current;
+      let oldTop = "";
+      if (navbar !== null) {
+        oldTop = navbar.style.top;
+        console.log(oldTop);
+      }
+      let sticky = 0;
+      const onScroll = () => {
+        if (navbar !== null && header !== null) {
+          sticky = header.offsetTop + header.getBoundingClientRect().height;
+          if (container !== null) {
+            if (container.scrollTop >= sticky) {
+              navbar.style.top = header.offsetTop - 18 + "px";
+              navbar.classList.remove("relative");
+              navbar.classList.add("fixed");
+            } else {
+              navbar.classList.add("relative");
+              navbar.classList.remove("fixed");
+              navbar.style.top = oldTop;
+            }
+          }
+        }
+      };
+      container?.addEventListener("scroll", onScroll);
+      return () => container?.removeEventListener("scroll", onScroll);
+    }, [searchRef, containerRef]);
+    return (
+      <div
+        ref={containerRef}
+        className="flex flex-col p-2 w-52 h-96 border overflow-auto"
+      >
+        <div className="py-2 font-bold text-xl" ref={headerRef}>
+          Sticky Notes
+        </div>
+        <div
+          className="relative flex items-center my-2 bg-white"
+          ref={searchRef}
+        >
+          <input type="text" className="w-full bg-zinc-300" />
+          <LiaSearchSolid className="absolute right-2" />
+        </div>
+        <div className="grow p-2">
+          <div className="flex flex-col gap-2 h-96">
+            {/* <div className="w-full h-40 bg-amber-200 border-amber-300">1</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">2</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">3</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">4</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">5</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">6</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">7</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">8</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">9</div>
+            <div className="w-full h-40 bg-amber-200 border-amber-300">10</div> */}
+            {initialNotes.map((note) => (
+              <div className="relative" key={note.id}>
+                <StackNote
+                  note={note}
+                  variant={note.color}
+                  className="w-full"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   },
 };

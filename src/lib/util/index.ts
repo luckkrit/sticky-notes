@@ -1,4 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
+import { debounce } from "lodash"
+import { useEffect, useMemo, useRef } from "react"
 import { PixelCrop } from "react-image-crop"
 import { twMerge } from "tailwind-merge"
 
@@ -78,3 +80,23 @@ export async function dataUrlToFile(dataUrl: string, fileName: string): Promise<
     const blob: Blob = await res.blob();
     return new File([blob], fileName, { type: 'image/jpg' });
 }
+export const useDebounce = <T extends unknown[], S>(callback: (...args: T) => S, delay: number = 1000) => {
+    const ref = useRef(callback)
+
+    useEffect(() => {
+        ref.current = callback
+    }, [callback])
+
+    const debouncedCallback = useMemo(() => {
+        // pass arguments to callback function
+        const func = (...arg: T) => {
+            return ref.current(...arg)
+        }
+
+        return debounce(func, delay)
+        // or just debounce(ref.current, delay)
+    }, [delay])
+
+    return debouncedCallback
+}
+

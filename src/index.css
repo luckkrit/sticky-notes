@@ -17,7 +17,7 @@
     );
     z-index: 20;
   }
-  .folded-amber-after {
+  .folded-after {
     content: "";
     position: absolute;
     display: block;
@@ -26,36 +26,6 @@
     bottom: 0;
     right: 0;
     @apply bg-amber-950/10;
-  }
-  .folded-fuchsia-after {
-    content: "";
-    position: absolute;
-    display: block;
-    width: var(--cs);
-    height: var(--cs);
-    bottom: 0;
-    right: 0;
-    @apply bg-fuchsia-950/10;
-  }
-  .folded-green-after {
-    content: "";
-    position: absolute;
-    display: block;
-    width: var(--cs);
-    height: var(--cs);
-    bottom: 0;
-    right: 0;
-    @apply bg-green-950/10;
-  }
-  .folded-sky-after {
-    content: "";
-    position: absolute;
-    display: block;
-    width: var(--cs);
-    height: var(--cs);
-    bottom: 0;
-    right: 0;
-    @apply bg-sky-950/10;
   }
   .cropped-area {
     border: 1px dashed black;
