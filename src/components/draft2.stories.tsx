@@ -122,7 +122,6 @@ const ListNote = () => {
     let oldTop = "";
     if (navbar !== null) {
       oldTop = navbar.style.top;
-      console.log(oldTop);
     }
     let sticky = 0;
     const onScroll = () => {
@@ -131,17 +130,18 @@ const ListNote = () => {
         if (container !== null) {
           if (container.scrollTop >= sticky) {
             navbar.style.top = container.offsetTop + "px";
-            navbar.style.zIndex = "999";
+            navbar.style.zIndex = "10";
             navbar.style.width = header.getBoundingClientRect().width + "px";
             navbar.classList.remove("relative");
             navbar.classList.remove("w-full");
-            navbar.classList.add("fixed");
+            navbar.classList.add("absolute");
           } else {
+            navbar.classList.remove("absolute");
             navbar.classList.add("relative");
-            navbar.classList.remove("fixed");
             navbar.classList.add("w-full");
             navbar.style.top = oldTop;
             navbar.style.width = "";
+            navbar.style.zIndex = "";
           }
         }
       }
@@ -150,7 +150,6 @@ const ListNote = () => {
     return () => container?.removeEventListener("scroll", onScroll);
   }, [searchRef, containerRef, headerRef]);
   useEffect(() => {
-    console.log("*", search);
     if (search.length > 0) {
       let filterN = filterNote(search);
       filterN = filterN.length === 0 ? [] : filterN;
@@ -163,7 +162,6 @@ const ListNote = () => {
     }
   }, [notes]);
   useEffect(() => {
-    console.log("**", search);
     if (search.length > 0) {
       let filterN = filterNote(search);
       filterN = filterN.length === 0 ? [] : filterN;
@@ -300,6 +298,7 @@ const ListResizableNotes = () => {
               dispatch({ type: NoteActionType.ADD, payload: newNote });
             }
           }}
+          className="z-50"
         />
       )
   );
@@ -365,7 +364,6 @@ const StackNote = ({ note, className, variant }: StackNoteProps) => {
       <div
         className={cn(
           "flex flex-col h-[150px] group-hover/note:bg-amber-950/10 ",
-          // isFolded === true ? "folded after:folded-amber-after" : "",
           stackNoteVariants({
             background: variant,
             borderBackground: variant,
@@ -538,9 +536,6 @@ interface ResizableNoteProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof resizableNoteVariants> {
   ref?: React.Ref<HTMLDivElement>;
-  // onClose?: () => void;
-  // content?: string;
-  // setContent?: React.Dispatch<React.SetStateAction<string>>;
   variant?: NoteType;
   note: NoteModel;
   onAddNote?: () => void;
@@ -551,14 +546,16 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const editor = useNoteEditor({ content: note.content });
     const [count, setCount] = useState(0);
     const dispatch = useNotesDispatch();
-    const onUpdate = (e: any) => {
-      // setContent && setContent(() => e.editor.getHTML());
+    const debounce = useDebounce((e: any) => {
       if (dispatch !== null) {
         if (note.content !== e.editor.getHTML()) {
           note.content = e.editor.getHTML();
           dispatch({ type: NoteActionType.UPDATE, payload: note });
         }
       }
+    }, 500);
+    const onUpdate = (e: any) => {
+      debounce(e);
     };
     useEffect(() => {
       editor?.on("update", onUpdate);
@@ -567,7 +564,6 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
       };
     }, [editor]);
     const onChange = () => {
-      console.log("on change");
       setCount((o) => {
         if (o > 50) o = 0;
         return o + 1;
@@ -727,7 +723,6 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
                         canvasRef.current,
                         crop
                       );
-                      // console.log(canvasPreviewRef.current.toDataURL());
                       editor
                         ?.chain()
                         .focus()
@@ -951,9 +946,9 @@ const StackNoteMenu = ({
       {isOpen && (
         <FloatingFocusManager context={context} modal={false}>
           <div
-            className="bg-slate-100 absolute z-50"
+            className="bg-slate-100"
             ref={refs.setFloating}
-            style={floatingStyles}
+            style={{ ...floatingStyles, zIndex: 50 }}
             {...getFloatingProps()}
           >
             <StackNoteMenuItem
