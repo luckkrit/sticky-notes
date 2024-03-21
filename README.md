@@ -2,6 +2,8 @@
 
 This is a clone of Microsoft Sticky Notes App
 
+![Sticky Notes App](./stickynotes.png)
+
 ## Installation
 
 Use the package manager [pnpm](https://pip.pypa.io/en/stable/) to install Sticky Notes.
