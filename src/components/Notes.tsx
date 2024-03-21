@@ -4,7 +4,7 @@ import Underline from "@tiptap/extension-underline";
 import { Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
-import { canvasPreview, cn, dataUrlToFile, useDebounce } from "@/lib/util";
+import { canvasPreview, cn, useDebounce } from "@/lib/util";
 import {
   FloatingFocusManager,
   autoPlacement,

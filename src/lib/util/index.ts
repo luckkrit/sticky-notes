@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { debounce } from "lodash"
 import { useEffect, useMemo, useRef } from "react"
-import { PixelCrop } from "react-image-crop"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {

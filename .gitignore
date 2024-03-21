@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 src/stories/*
-src/components/*.stories.tsx
+src/components/*.stories.*
