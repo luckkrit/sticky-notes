@@ -14,6 +14,10 @@ export interface NoteModel {
     createdDate: string;
     color: NoteType;
     open: boolean;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
 // Dexie
 class StickyAppDb extends Dexie {
@@ -21,8 +25,8 @@ class StickyAppDb extends Dexie {
 
     constructor() {
         super("StickyApp");
-        this.version(1).stores({
-            notes: "++id, content, createdDate, color, open", // Primary key and indexed props
+        this.version(2).stores({
+            notes: "++id, content, createdDate, color, open, w, y, width, height", // Primary key and indexed props
         });
     }
 }

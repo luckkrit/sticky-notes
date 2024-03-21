@@ -1,6 +1,6 @@
-import { NoteAction, notesReducer } from "@/hooks";
+import { NoteAction } from "@/hooks";
 import { getNotes, NoteModel } from "@/lib/db";
-import React, { createContext, PropsWithChildren, useContext, useReducer } from "react";
+import React, { createContext, useContext } from "react";
 
 export const initialNotes: NoteModel[] = await getNotes();
 

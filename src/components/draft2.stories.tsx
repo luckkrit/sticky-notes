@@ -8,6 +8,7 @@ import {
 } from "./Notes";
 import { initialNotes } from "@/context";
 import { NotesProvider } from "@/provider";
+import { NoteModel } from "@/lib/db";
 
 // Storybook Meta
 const meta: Meta<typeof Note> = {
@@ -28,19 +29,35 @@ type Story = StoryObj<typeof meta>;
 
 export const Draft1: Story = {
   render: ({ variant }) => {
-    return (
-      <StackNote
-        note={initialNotes[0]}
-        variant={variant}
-        className="w-[220px]"
-      />
-    );
+    const note: NoteModel = {
+      id: 0,
+      content: "",
+      open: false,
+      color: "amber",
+      x: 0,
+      y: 0,
+      width: 220,
+      height: 200,
+      createdDate: new Date().toDateString(),
+    };
+    return <StackNote note={note} variant={variant} className="w-[220px]" />;
   },
 };
 
 export const Draft2: Story = {
   render: ({ variant }) => {
-    return <ResizableNote variant={variant} note={initialNotes[0]} />;
+    const note: NoteModel = {
+      id: 0,
+      content: "",
+      open: false,
+      color: "amber",
+      x: 0,
+      y: 0,
+      width: 220,
+      height: 200,
+      createdDate: new Date().toDateString(),
+    };
+    return <ResizableNote variant={variant} note={note} />;
   },
 };
 
@@ -52,15 +69,5 @@ export const Draft3: Story = {
   },
   parameters: {
     controls: { exclude: ["variant"] },
-  },
-  render: () => {
-    return (
-      <NotesProvider>
-        <div className="flex">
-          <ListNote />
-          <ListResizableNotes />
-        </div>
-      </NotesProvider>
-    );
   },
 };

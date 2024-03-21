@@ -57,10 +57,18 @@ import {
 } from "@/lib/db";
 import { NoteActionType } from "@/hooks";
 import { useNotes, useNotesDispatch } from "@/context";
+import { NotesProvider } from "@/provider";
 // UI
 
 export const Note = () => {
-  return <></>;
+  return (
+    <NotesProvider>
+      <div className="flex p-4">
+        <ListNote />
+        <ListResizableNotes />
+      </div>
+    </NotesProvider>
+  );
 };
 interface useNoteEditorProps {
   content: string;
@@ -197,14 +205,9 @@ export const ListNote = () => {
     from: { transform: "translateX(-100px)" },
     to: { transform: "translateX(0px)" },
   });
-  const newNoteIndex = () => {
-    const ids = notes.map((m) => (m.id !== undefined ? m.id : -1));
-    const maxId = Math.max(...ids);
-    return maxId + 1;
-  };
   return (
     <div
-      className="flex flex-col p-4 border w-80 h-[600px] overflow-auto"
+      className="flex flex-col p-4 border border-gray-500 w-80 h-[600px] overflow-auto"
       ref={containerRef}
     >
       <div className="flex justify-between">
@@ -216,6 +219,10 @@ export const ListNote = () => {
               color: randomColors(),
               createdDate: new Date().toDateString(),
               open: false,
+              x: 0,
+              y: 0,
+              width: 220,
+              height: 200,
             };
             addNotes(newNote);
             if (dispatch !== null) {
@@ -301,6 +308,10 @@ export const ListResizableNotes = () => {
                 color: randomColors(),
                 createdDate: new Date().toDateString(),
                 open: false,
+                x: 0,
+                y: 0,
+                width: 220,
+                height: 200,
               };
               await addNotes(newNote);
               dispatch({ type: NoteActionType.ADD, payload: newNote });
@@ -566,6 +577,34 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         }
       }
     }, 500);
+    const debounce2 = useDebounce(async () => {
+      if (dispatch !== null) {
+        if (
+          note.x !== springs.x.get() ||
+          note.y !== springs.y.get() ||
+          note.width !== springs.width.get() ||
+          note.height !== springs.height.get()
+        ) {
+          //   console.log(
+          //     "update ",
+          //     note.x,
+          //     note.y,
+          //     note.width,
+          //     note.height,
+          //     springs.x.get(),
+          //     springs.y.get(),
+          //     springs.width.get(),
+          //     springs.height.get()
+          //   );
+          note.x = springs.x.get();
+          note.y = springs.y.get();
+          note.width = springs.width.get();
+          note.height = springs.height.get();
+          await updateNotes(note);
+          dispatch({ type: NoteActionType.UPDATE, payload: note });
+        }
+      }
+    }, 500);
     const onUpdate = (e: any) => {
       debounce(e);
     };
@@ -580,12 +619,13 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         if (o > 50) o = 0;
         return o + 1;
       });
+      debounce2();
     };
     const { springs, bind } = useResizable({
-      x1: 0,
-      y1: 0,
-      w1: 220,
-      h1: 200,
+      x1: note.x,
+      y1: note.y,
+      w1: note.width,
+      h1: note.height,
       dragEl,
       onChange: onChange,
     });
