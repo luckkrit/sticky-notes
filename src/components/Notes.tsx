@@ -1247,7 +1247,7 @@ const NoteResizableMenu = ({
       onMouseLeave={() => {
         setMouseLeave(() => true);
       }}
-      className={`fixed z-20 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
+      className={`fixed z-50 w-full drop-shadow ${showMenu ? "visible" : "hidden"}`}
     >
       <div className="grid grid-cols-7">
         <ColorPaletteButton
