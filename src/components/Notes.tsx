@@ -756,14 +756,9 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
                         ?.chain()
                         .focus()
                         .setImage({
-                          src: URL.createObjectURL(
-                            await dataUrlToFile(
-                              canvasPreviewRef.current.toDataURL(
-                                "image/jpg",
-                                50
-                              ),
-                              "image.jpg"
-                            )
+                          src: canvasPreviewRef.current.toDataURL(
+                            "image/jpg",
+                            50
                           ),
                         })
                         .run();
