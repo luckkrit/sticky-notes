@@ -50,7 +50,55 @@ import { Image as TipTapImage } from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { LiaSearchSolid } from "react-icons/lia";
 import { stripHtml } from "string-strip-html";
+import Dexie, { Table } from "dexie";
 
+// Dexie
+class StickyAppDb extends Dexie {
+  notes!: Table<NoteModel>;
+
+  constructor() {
+    super("StickyApp");
+    this.version(1).stores({
+      notes: "++id, content, createdDate, color, open", // Primary key and indexed props
+    });
+  }
+}
+// init Database
+const db = new StickyAppDb();
+const addNotes = async (note: NoteModel) => {
+  try {
+    const id = await db.notes.add(note);
+    console.log("new id = ", id);
+  } catch (err) {
+    console.log("add error = ", err);
+  }
+};
+
+const deleteNotes = async (note: NoteModel) => {
+  try {
+    if (note.id !== undefined) {
+      await db.notes.delete(note.id);
+    }
+  } catch (err) {
+    console.log("delete error = ", err);
+  }
+};
+
+const getNotes = async () => {
+  return db.notes.toArray();
+};
+
+const updateNotes = async (note: NoteModel) => {
+  try {
+    if (note.id !== undefined) {
+      await db.notes.update(note.id, note);
+    }
+  } catch (err) {
+    console.log("update error = ", err);
+  }
+};
+
+// UI
 interface useNoteEditorProps {
   content: string;
 }
@@ -89,8 +137,10 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     content,
     editorProps: {
       attributes: {
+        // class:
+        //   "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none fixed top-0 overflow-auto no-scrollbar",
         class:
-          "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none fixed top-0 overflow-auto no-scrollbar",
+          "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none overflow-auto no-scrollbar ",
       },
     },
   });
@@ -115,6 +165,7 @@ const ListNote = () => {
   const headerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     let container = containerRef.current;
     let navbar = searchRef.current;
@@ -130,7 +181,7 @@ const ListNote = () => {
         if (container !== null) {
           if (container.scrollTop >= sticky) {
             navbar.style.top = container.offsetTop + "px";
-            navbar.style.zIndex = "10";
+            navbar.style.zIndex = "1";
             navbar.style.width = header.getBoundingClientRect().width + "px";
             navbar.classList.remove("relative");
             navbar.classList.remove("w-full");
@@ -187,7 +238,7 @@ const ListNote = () => {
     to: { transform: "translateX(0px)" },
   });
   const newNoteIndex = () => {
-    const ids = notes.map((m) => m.id);
+    const ids = notes.map((m) => (m.id !== undefined ? m.id : -1));
     const maxId = Math.max(...ids);
     return maxId + 1;
   };
@@ -198,14 +249,15 @@ const ListNote = () => {
     >
       <div className="flex justify-between">
         <button
-          onClick={() => {
+          onClick={async () => {
             const newNote: NoteModel = {
-              id: newNoteIndex(),
+              // id: newNoteIndex(),
               content: "",
               color: randomColors(),
               createdDate: new Date().toDateString(),
               open: false,
             };
+            addNotes(newNote);
             if (dispatch !== null) {
               dispatch({ type: NoteActionType.ADD, payload: newNote });
             }
@@ -274,11 +326,6 @@ const ListNote = () => {
 const ListResizableNotes = () => {
   const notes = useNotes();
   const dispatch = useNotesDispatch();
-  const newNoteIndex = () => {
-    const ids = notes.map((m) => m.id);
-    const maxId = Math.max(...ids);
-    return maxId + 1;
-  };
   return notes.map(
     (note) =>
       note.open && (
@@ -286,15 +333,16 @@ const ListResizableNotes = () => {
           key={note.id}
           note={note}
           variant={note.color}
-          onAddNote={() => {
+          onAddNote={async () => {
             if (dispatch !== null) {
               const newNote: NoteModel = {
-                id: newNoteIndex(),
+                // id: newNoteIndex(),
                 content: "",
                 color: randomColors(),
                 createdDate: new Date().toDateString(),
                 open: false,
               };
+              await addNotes(newNote);
               dispatch({ type: NoteActionType.ADD, payload: newNote });
             }
           }}
@@ -381,8 +429,9 @@ const StackNote = ({ note, className, variant }: StackNoteProps) => {
             <StackNoteMenu
               open={openMenu}
               key={count}
-              onOpen={() => {
+              onOpen={async () => {
                 setIsFolded(() => true);
+                await updateNotes({ ...note, open: true });
                 if (dispatch !== null) {
                   dispatch({
                     type: NoteActionType.OPEN,
@@ -390,8 +439,9 @@ const StackNote = ({ note, className, variant }: StackNoteProps) => {
                   });
                 }
               }}
-              onClose={() => {
+              onClose={async () => {
                 setIsFolded(() => false);
+                await updateNotes({ ...note, open: false });
                 if (dispatch !== null) {
                   dispatch({
                     type: NoteActionType.OPEN,
@@ -399,7 +449,8 @@ const StackNote = ({ note, className, variant }: StackNoteProps) => {
                   });
                 }
               }}
-              onDelete={() => {
+              onDelete={async () => {
+                await deleteNotes(note);
                 if (dispatch !== null) {
                   dispatch({ type: NoteActionType.DELETE, payload: note });
                 }
@@ -411,8 +462,8 @@ const StackNote = ({ note, className, variant }: StackNoteProps) => {
             </span>
           </div>
         </div>
-        <div className={cn(`fixed top-8 bottom-8 left-1 right-1`)}>
-          <NoteEditor editor={editor} footer={0} />
+        <div className={cn(`top-8 bottom-8 left-1 right-1`)}>
+          <NoteEditor editor={editor} footer={20} />
         </div>
       </div>
       <div
@@ -546,10 +597,11 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const editor = useNoteEditor({ content: note.content });
     const [count, setCount] = useState(0);
     const dispatch = useNotesDispatch();
-    const debounce = useDebounce((e: any) => {
+    const debounce = useDebounce(async (e: any) => {
       if (dispatch !== null) {
         if (note.content !== e.editor.getHTML()) {
           note.content = e.editor.getHTML();
+          await updateNotes(note);
           dispatch({ type: NoteActionType.UPDATE, payload: note });
         }
       }
@@ -655,7 +707,8 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
               </button>
               <button
                 className="invisible group-focus-within/note:visible hover:visible hover:bg-zinc-200/60 p-2"
-                onClick={() => {
+                onClick={async () => {
+                  await updateNotes({ ...note, open: false });
                   if (dispatch !== null) {
                     dispatch({
                       type: NoteActionType.OPEN,
@@ -672,7 +725,8 @@ const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
             showMenu={showMenu}
             setShowMenu={setShowMenu}
             note={note}
-            onDeleteNote={() => {
+            onDeleteNote={async () => {
+              await deleteNotes(note);
               if (dispatch !== null) {
                 dispatch({ type: NoteActionType.DELETE, payload: note });
               }
@@ -878,6 +932,7 @@ const NoteEditor = ({
   editor,
   style,
   footer = 81,
+  className,
 }: NoteEditorProps) => {
   const { width, height } = springs || {
     width: new SpringValue(220),
@@ -901,7 +956,11 @@ const NoteEditor = ({
   return (
     <EditorContent
       editor={editor}
-      className="w-full fixed top-8 bottom-8 overflow-auto no-scrollbar"
+      // className={cn(
+      //   "w-full fixed top-8 bottom-8 overflow-auto no-scrollbar",
+      //   className
+      // )}
+      className={cn(" overflow-auto no-scrollbar", className)}
       style={style}
     />
   );
@@ -946,9 +1005,9 @@ const StackNoteMenu = ({
       {isOpen && (
         <FloatingFocusManager context={context} modal={false}>
           <div
-            className="bg-slate-100"
+            className="bg-slate-100 shadow-md"
             ref={refs.setFloating}
-            style={{ ...floatingStyles, zIndex: 50 }}
+            style={{ ...floatingStyles, zIndex: 50, position: "fixed" }}
             {...getFloatingProps()}
           >
             <StackNoteMenuItem
@@ -1377,7 +1436,7 @@ type NoteType =
   | "zinc"
   | "neutral";
 interface NoteModel {
-  id: number;
+  id?: number;
   content: string;
   createdDate: string;
   color: NoteType;
@@ -1426,43 +1485,8 @@ const randomColors = (): NoteType => {
   else return "neutral";
 };
 
-const initialNotes: NoteModel[] = [
-  {
-    id: 1,
-    color: randomColors(),
-    content: "This is note 1",
-    createdDate: new Date().toDateString(),
-    open: false,
-  },
-  {
-    id: 2,
-    color: randomColors(),
-    content: "This is note 2",
-    createdDate: new Date().toDateString(),
-    open: false,
-  },
-  {
-    id: 3,
-    color: randomColors(),
-    content: "This is note 3",
-    createdDate: new Date().toDateString(),
-    open: false,
-  },
-  {
-    id: 4,
-    color: randomColors(),
-    content: "This is note 4",
-    createdDate: new Date().toDateString(),
-    open: false,
-  },
-  {
-    id: 5,
-    color: randomColors(),
-    content: "This is note 5",
-    createdDate: new Date().toDateString(),
-    open: false,
-  },
-];
+const initialNotes: NoteModel[] = await getNotes();
+
 const NotesContext = createContext<NoteModel[]>([]);
 const NotesDispatchContext = createContext<React.Dispatch<NoteAction> | null>(
   null
@@ -1482,6 +1506,7 @@ const NotesProvider = ({ children }: PropsWithChildren) => {
   );
 };
 
+// Storybook Meta
 const meta: Meta<typeof Note> = {
   component: Note,
   args: {
@@ -1517,6 +1542,14 @@ export const Draft2: Story = {
 };
 
 export const Draft3: Story = {
+  argTypes: {
+    variant: {
+      control: false,
+    },
+  },
+  parameters: {
+    controls: { exclude: ["variant"] },
+  },
   render: () => {
     return (
       <NotesProvider>
