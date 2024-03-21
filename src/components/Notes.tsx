@@ -58,7 +58,6 @@ import {
 import { NoteActionType } from "@/hooks";
 import { useNotes, useNotesDispatch } from "@/context";
 import { NotesProvider } from "@/provider";
-// UI
 
 export const Note = () => {
   return (
@@ -82,11 +81,11 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     StarterKit.configure({
       bulletList: {
         keepMarks: true,
-        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        keepAttributes: false,
       },
       orderedList: {
         keepMarks: true,
-        keepAttributes: false, // TODO : Making this as `false` becase marks are not preserved when I try to preserve attrs, awaiting a bit of help
+        keepAttributes: false,
       },
     }),
     TipTapImage.configure({
@@ -108,8 +107,6 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
     content,
     editorProps: {
       attributes: {
-        // class:
-        //   "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none fixed top-0 overflow-auto no-scrollbar",
         class:
           "outline-none p-2 prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none overflow-auto no-scrollbar ",
       },
@@ -121,9 +118,6 @@ const useNoteEditor = ({ content }: useNoteEditorProps): Editor | null => {
   return editor;
 };
 
-interface ListNoteProps {
-  // notes: NoteModel[];
-}
 export const ListNote = () => {
   const [search, setSearch] = useState("");
   const dispatch = useNotesDispatch();
@@ -214,7 +208,6 @@ export const ListNote = () => {
         <button
           onClick={async () => {
             const newNote: NoteModel = {
-              // id: newNoteIndex(),
               content: "",
               color: randomColors(),
               createdDate: new Date().toDateString(),
@@ -232,9 +225,6 @@ export const ListNote = () => {
         >
           <GrAdd />
         </button>
-        {/* <button>
-          <GrClose />
-        </button> */}
         <div></div>
       </div>
       <div className="font-bold text-xl my-2" ref={headerRef}>
@@ -303,7 +293,6 @@ export const ListResizableNotes = () => {
           onAddNote={async () => {
             if (dispatch !== null) {
               const newNote: NoteModel = {
-                // id: newNoteIndex(),
                 content: "",
                 color: randomColors(),
                 createdDate: new Date().toDateString(),
@@ -349,7 +338,6 @@ interface StackNoteProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof stackNoteVariants> {
   variant?: "amber" | "green" | "pink" | "violet" | "cyan" | "zinc" | "neutral";
-  // content?: string;
   note: NoteModel;
 }
 export const StackNote = ({ note, className, variant }: StackNoteProps) => {
@@ -585,17 +573,6 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
           note.width !== springs.width.get() ||
           note.height !== springs.height.get()
         ) {
-          //   console.log(
-          //     "update ",
-          //     note.x,
-          //     note.y,
-          //     note.width,
-          //     note.height,
-          //     springs.x.get(),
-          //     springs.y.get(),
-          //     springs.width.get(),
-          //     springs.height.get()
-          //   );
           note.x = springs.x.get();
           note.y = springs.y.get();
           note.width = springs.width.get();
@@ -637,7 +614,6 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
     const [imageData, setImageData] = useState<string | undefined>(undefined);
     const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
     const [showMenu, setShowMenu] = useState(false);
-    // const [mouseLeave, setMouseLeave] = useState(false);
     useEffect(() => {
       if (open) {
         const image = new Image();
@@ -668,7 +644,6 @@ export const ResizableNote = forwardRef<HTMLDivElement, ResizableNoteProps>(
         )}
       >
         <div
-          // className="flex flex-col bg-amber-100 border-amber-200 min-w-[220px] min-h-[200px] w-full h-full"
           className={cn(
             resizableNoteVariants({
               className,
@@ -956,10 +931,6 @@ const NoteEditor = ({
   return (
     <EditorContent
       editor={editor}
-      // className={cn(
-      //   "w-full fixed top-8 bottom-8 overflow-auto no-scrollbar",
-      //   className
-      // )}
       className={cn(" overflow-auto no-scrollbar", className)}
       style={style}
     />
@@ -1145,7 +1116,6 @@ const ImagePreviewDialog = ({
       }
       const rects = containerRef?.current?.getBoundingClientRect();
       if (rects !== undefined) {
-        // api.set({ x: rects.x, y: rects.y, width: 100, height: 100 });
         setCrop &&
           setCrop(() => ({
             x: x.get() - rects.x,

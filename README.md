@@ -10,6 +10,12 @@ Use the package manager [pnpm](https://pip.pypa.io/en/stable/) to install Sticky
 pnpm install
 ```
 
+## Usage
+
+```bash
+pnpm dev
+```
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
