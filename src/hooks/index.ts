@@ -2,6 +2,7 @@ import { NoteModel } from "@/lib/db";
 
 // Context
 export enum NoteActionType {
+    SELECT = "SELECT",
     ADD = "ADD",
     UPDATE = "UPDATE",
     DELETE = "DELETE",
@@ -12,9 +13,13 @@ export enum NoteActionType {
 export interface NoteAction {
     type: NoteActionType;
     payload: NoteModel;
+    payload2?: NoteModel[];
 }
 export const notesReducer = (notes: NoteModel[], action: NoteAction) => {
     switch (action.type) {
+        case NoteActionType.SELECT:
+            if (action.payload2 === undefined) return []
+            return action.payload2
         case NoteActionType.ADD:
             return [...notes, action.payload];
         case NoteActionType.UPDATE:

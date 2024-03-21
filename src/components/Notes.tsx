@@ -51,6 +51,7 @@ import { stripHtml } from "string-strip-html";
 import {
   addNotes,
   deleteNotes,
+  getNotes,
   NoteModel,
   NoteType,
   updateNotes,
@@ -123,6 +124,28 @@ export const ListNote = () => {
   const dispatch = useNotesDispatch();
   const notes = useNotes();
 
+  useEffect(() => {
+    const syncNotes = async () => {
+      const readNotes = await getNotes();
+      if (dispatch !== null) {
+        dispatch({
+          type: NoteActionType.SELECT,
+          payload2: readNotes,
+          payload: {
+            content: "",
+            color: "amber",
+            createdDate: "",
+            open: false,
+            height: 0,
+            width: 0,
+            x: 0,
+            y: 0,
+          },
+        });
+      }
+    };
+    syncNotes();
+  }, [dispatch]);
   const searchRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
