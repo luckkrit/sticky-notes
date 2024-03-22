@@ -4,6 +4,10 @@ This is a clone of Microsoft Sticky Notes App
 
 ![Sticky Notes App](./stickynotes.png)
 
+## Demo
+
+[Sticky Notes Demo](https://luckkrit.github.io/sticky-notes/)
+
 ## Installation
 
 Use the package manager [pnpm](https://pip.pypa.io/en/stable/) to install Sticky Notes.
@@ -17,6 +21,11 @@ pnpm install
 ```bash
 pnpm dev
 ```
+
+## Todos
+
+- Authentication and sync between devices
+- Drawing support
 
 ## Contributing
 
